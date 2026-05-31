@@ -18,6 +18,7 @@ import { T } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 type PhaseFilter = 'group' | 'knockout' | 'all';
+type SortMode   = 'group' | 'date';
 
 const FILTERS: { key: PhaseFilter; label: string }[] = [
   { key: 'group',    label: 'Grupos' },
@@ -33,7 +34,9 @@ export default function PrediccionesScreen() {
   const { getPrediction, savePrediction } = usePredictions();
   const liveMatches = useMatchResults();
   const { groups } = useGroups();
-  const [filter, setFilter] = useState<PhaseFilter>('group');
+  const [filter, setFilter]     = useState<PhaseFilter>('group');
+  const [sortMode, setSortMode] = useState<SortMode>('group');
+  const [onlyEmpty, setOnlyEmpty] = useState(false);
 
   // Selector de usuario
   const [groupSections, setGroupSections] = useState<GroupSection[]>([]);
@@ -79,11 +82,26 @@ export default function PrediccionesScreen() {
   const activePred    = viewingOther ? getOtherPred : getPrediction;
 
   const sections = useMemo(() => {
-    const filtered = liveMatches.filter((m) => {
+    let filtered = liveMatches.filter((m) => {
       if (filter === 'group')    return m.phase === 'group';
       if (filter === 'knockout') return m.phase !== 'group';
       return true;
     });
+
+    // Filtrar solo no rellenas (solo aplica en mis predicciones)
+    if (onlyEmpty && !viewingOther) {
+      filtered = filtered.filter((m) => m.status === 'upcoming' && !getPrediction(m.id));
+    }
+
+    if (sortMode === 'date') {
+      // Sección única ordenada por fecha
+      const sorted = [...filtered].sort((a, b) =>
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+      );
+      return [{ title: 'Por fecha', data: sorted }];
+    }
+
+    // Ordenación por grupo (comportamiento original)
     const bySection = new Map<string, Match[]>();
     for (const match of filtered) {
       const key = match.phase === 'group' && match.group
@@ -93,7 +111,7 @@ export default function PrediccionesScreen() {
       bySection.get(key)!.push(match);
     }
     return Array.from(bySection.entries()).map(([title, data]) => ({ title, data }));
-  }, [filter, liveMatches]);
+  }, [filter, sortMode, onlyEmpty, liveMatches, getPrediction, viewingOther]);
 
   return (
     <View style={styles.container}>
@@ -133,6 +151,30 @@ export default function PrediccionesScreen() {
               <Text style={[styles.chipText, filter === f.key && styles.chipTextActive]}>{f.label}</Text>
             </Pressable>
           ))}
+        </View>
+
+        {/* Ordenación y filtro vacías */}
+        <View style={styles.filters}>
+          <Pressable
+            style={[styles.chip, sortMode === 'group' && styles.chipActive]}
+            onPress={() => setSortMode('group')}
+          >
+            <Text style={[styles.chipText, sortMode === 'group' && styles.chipTextActive]}>Por grupo</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.chip, sortMode === 'date' && styles.chipActive]}
+            onPress={() => setSortMode('date')}
+          >
+            <Text style={[styles.chipText, sortMode === 'date' && styles.chipTextActive]}>Por fecha</Text>
+          </Pressable>
+          {!viewingOther && (
+            <Pressable
+              style={[styles.chip, onlyEmpty && styles.chipActive]}
+              onPress={() => setOnlyEmpty((v) => !v)}
+            >
+              <Text style={[styles.chipText, onlyEmpty && styles.chipTextActive]}>Sin rellenar</Text>
+            </Pressable>
+          )}
         </View>
       </View>
 

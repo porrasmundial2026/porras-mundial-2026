@@ -23,8 +23,7 @@ export default function LoginScreen() {
   const [passwordFocus, setPasswordFocus] = useState(false);
 
   const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID,
-    webClientId:     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
   });
 
   React.useEffect(() => {
