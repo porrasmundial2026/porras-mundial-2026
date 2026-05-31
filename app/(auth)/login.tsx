@@ -74,7 +74,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
         {/* Logo */}
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
 
   // Header
   header:  { alignItems: 'center', gap: 12 },
-  logoImg: { width: '100%', aspectRatio: 1, marginBottom: -8 },
+  logoImg: { width: '100%', height: 230, marginBottom: -8 },
   title:   { color: T.color.ink, fontSize: 26, fontFamily: 'SchibstedGrotesk_800ExtraBold', textAlign: 'center' },
   sub:     { color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center' },
 
