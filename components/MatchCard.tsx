@@ -22,7 +22,9 @@ export function MatchCard({ match, prediction, onSave, readOnly = false }: Props
   const isFinished = match.status === 'finished';
   const isLive     = match.status === 'live';
   const teamsKnown = match.homeTeam !== 'Por definir' && match.awayTeam !== 'Por definir';
-  const isPredictable = isUpcoming && teamsKnown && !readOnly;
+  // El partido cierra cuando llega su hora de inicio, aunque la API/admin no lo haya marcado aún
+  const hasStarted = new Date(match.scheduledAt).getTime() <= Date.now();
+  const isPredictable = isUpcoming && teamsKnown && !readOnly && !hasStarted;
   const hasPred = prediction != null;
   // Calcular puntos en tiempo real desde el resultado actual, no del campo almacenado
   const pts = isFinished && hasPred && match.homeScore !== undefined && match.awayScore !== undefined
@@ -108,6 +110,8 @@ export function MatchCard({ match, prediction, onSave, readOnly = false }: Props
             </View>
           ) : isUpcoming && !teamsKnown ? (
             <Text style={styles.pendingText}>Por definir</Text>
+          ) : hasStarted && !hasPred && teamsKnown ? (
+            <Text style={styles.pendingText}>Cerrado</Text>
           ) : null}
         </View>
       </View>

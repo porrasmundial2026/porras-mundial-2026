@@ -48,6 +48,10 @@ export function usePredictions() {
       const match = MATCH_BY_ID[matchId];
       if (!match) throw new Error('Match not found');
       if (match.status !== 'upcoming') throw new Error('Partido ya comenzó');
+      // Cierre por hora real de inicio, aunque el status no se haya actualizado
+      if (new Date(match.scheduledAt).getTime() <= Date.now()) {
+        throw new Error('El partido ya ha comenzado');
+      }
 
       const docId = `${user.uid}_${matchId}`;
       const points =
