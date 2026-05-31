@@ -68,10 +68,16 @@ export default function RankingScreen() {
     const bestMatch  = [...perMatch].sort((a, b) => b.exact - a.exact)[0];
     const worstMatch = [...perMatch].sort((a, b) => a.hitRate - b.hitRate)[0];
 
+    // Partido con más goles (de todos los finalizados)
+    const highScoring = [...finishedMatches]
+      .filter((m) => m.homeScore !== undefined && m.awayScore !== undefined)
+      .sort((a, b) => (b.homeScore! + b.awayScore!) - (a.homeScore! + a.awayScore!))[0];
+
     return {
       topExact: topExact && topExact.exactHits > 0 ? { name: topExact.displayName, value: topExact.exactHits } : null,
       bestMatch: bestMatch && bestMatch.exact > 0 ? bestMatch : null,
       worstMatch: worstMatch ? worstMatch : null,
+      highScoring: highScoring ? highScoring : null,
     };
   }, [ranking, predictions, finishedMatches, members]);
 
@@ -206,6 +212,17 @@ export default function RankingScreen() {
                         <Text style={styles.statCardLabel}>Partido más fallado</Text>
                         <Text style={styles.statCardValue}>
                           {FLAG[groupStats.worstMatch.match.homeTeam]} {groupStats.worstMatch.match.homeScore}–{groupStats.worstMatch.match.awayScore} {FLAG[groupStats.worstMatch.match.awayTeam]} · {Math.round(groupStats.worstMatch.hitRate * 100)}% acertó
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {groupStats.highScoring && (
+                    <View style={styles.statCard}>
+                      <Text style={styles.statIcon}>⚽</Text>
+                      <View style={styles.statTextBlock}>
+                        <Text style={styles.statCardLabel}>Partido con más goles</Text>
+                        <Text style={styles.statCardValue}>
+                          {FLAG[groupStats.highScoring.homeTeam]} {groupStats.highScoring.homeScore}–{groupStats.highScoring.awayScore} {FLAG[groupStats.highScoring.awayTeam]} · {groupStats.highScoring.homeScore! + groupStats.highScoring.awayScore!} goles
                         </Text>
                       </View>
                     </View>
