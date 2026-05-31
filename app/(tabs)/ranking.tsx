@@ -181,10 +181,9 @@ export default function RankingScreen() {
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <>
-              {ranking.length > 0 && <Podium top3={ranking.slice(0, 3)} currentUserId={user?.uid} />}
               {groupStats && (
                 <View style={styles.statsSection}>
-                  <Text style={styles.statsSectionTitle}>Destacados del grupo</Text>
+                  <Text style={[styles.statsSectionTitle, { paddingHorizontal: 0, paddingTop: 0 }]}>Destacados del grupo</Text>
                   {groupStats.topExact && (
                     <View style={styles.statCard}>
                       <Text style={styles.statIcon}>🎯</Text>
@@ -229,6 +228,7 @@ export default function RankingScreen() {
                   )}
                 </View>
               )}
+              {ranking.length > 0 && <Podium top3={ranking.slice(0, 3)} currentUserId={user?.uid} />}
               {ranking.length > 3 && <Text style={styles.statsSectionTitle}>Clasificación</Text>}
             </>
           }
