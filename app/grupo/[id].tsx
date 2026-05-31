@@ -63,9 +63,8 @@ export default function GrupoDetailScreen() {
 
   async function shareCode() {
     if (!group) return;
-    const link = `https://frontovik2001.github.io/porras-mundial-2026/join.html?code=${group.code}`;
     await Share.share({
-      message: `¡Únete a mi grupo "${group.name}" en Porras Mundial 2026! 🏆\n\nCódigo: ${group.code}\n\n${link}`,
+      message: `¡Únete a mi grupo "${group.name}" en Porras Mundial 2026! 🏆\n\nAbre la app, ve a Grupos → Unirse e introduce este código:\n\n${group.code}`,
     });
   }
 
