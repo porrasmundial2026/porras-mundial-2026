@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, Share, Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Group, UserProfile } from '../../types';
@@ -61,6 +61,28 @@ export default function GrupoDetailScreen() {
     );
   }
 
+  async function kickMember(uid: string, name: string) {
+    if (!group) return;
+    Alert.alert(
+      'Expulsar miembro',
+      `¿Expulsar a ${name} del grupo? Podrá volver a unirse con el código.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Expulsar', style: 'destructive', onPress: async () => {
+            try {
+              await updateDoc(doc(db, 'groups', group.id), { members: arrayRemove(uid) });
+              setMembers((prev) => prev.filter((m) => m.userId !== uid));
+              setGroup((prev) => prev ? { ...prev, members: prev.members.filter((u) => u !== uid) } : prev);
+            } catch {
+              Alert.alert('Error', 'No se pudo expulsar al miembro');
+            }
+          },
+        },
+      ]
+    );
+  }
+
   async function shareCode() {
     if (!group) return;
     const link = `https://porrasmundial2026.github.io/porras-mundial-2026/join.html?code=${group.code}`;
@@ -104,7 +126,13 @@ export default function GrupoDetailScreen() {
                   <Text style={styles.memberAvatarText}>{m.displayName.charAt(0).toUpperCase()}</Text>
                 </View>
                 <Text style={styles.memberName}>{m.displayName}{m.userId === user?.uid ? ' (tú)' : ''}</Text>
-                {m.userId === group.ownerId && <Text style={styles.ownerBadge}>Admin</Text>}
+                {m.userId === group.ownerId ? (
+                  <Text style={styles.ownerBadge}>Admin</Text>
+                ) : user?.uid === group.ownerId ? (
+                  <Pressable style={styles.kickBtn} onPress={() => kickMember(m.userId, m.displayName)}>
+                    <Text style={styles.kickBtnText}>Expulsar</Text>
+                  </Pressable>
+                ) : null}
               </View>
             ))}
 
@@ -144,6 +172,8 @@ const styles = StyleSheet.create({
   memberAvatarText: { color: T.color.accent, fontSize: 16, fontFamily: 'SchibstedGrotesk_700Bold' },
   memberName:  { flex: 1, color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   ownerBadge:  { color: T.color.accent, fontSize: 12, fontFamily: 'HankenGrotesk_700Bold', backgroundColor: T.color.soft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: T.radius.chip },
+  kickBtn:     { backgroundColor: '#FEE2E2', paddingHorizontal: 10, paddingVertical: 5, borderRadius: T.radius.chip },
+  kickBtnText: { color: '#dc2626', fontSize: 12, fontFamily: 'HankenGrotesk_700Bold' },
   empty:       { padding: 32, alignItems: 'center', gap: 10 },
   emptyEmoji:  { fontSize: 40 },
   emptyText:   { color: T.color.ink2, fontSize: 15, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', lineHeight: 24 },
