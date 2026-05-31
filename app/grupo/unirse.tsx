@@ -55,7 +55,7 @@ export default function UnirseGrupoScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Pressable style={[styles.btn, loading && styles.btnDisabled]} onPress={handleJoin} disabled={loading}>
+        <Pressable style={[styles.btn, loading && styles.btnDisabled]} onPress={() => handleJoin()} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Unirse</Text>}
         </Pressable>
       </View>
