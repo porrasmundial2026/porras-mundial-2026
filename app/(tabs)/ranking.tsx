@@ -10,7 +10,8 @@ import { useGroups } from '../../hooks/useGroup';
 import { useAuth } from '../../contexts/AuthContext';
 import { RankingItem } from '../../components/RankingItem';
 import { Podium } from '../../components/Podium';
-import { buildRanking } from '../../lib/scoring';
+import { buildRanking, calculatePoints } from '../../lib/scoring';
+import { FLAG } from '../../constants/flags';
 import { Group, Prediction, RankingEntry, UserProfile } from '../../types';
 import { T } from '../../constants/theme';
 import { useMatchResults } from '../../hooks/useMatchResults';
@@ -44,6 +45,32 @@ export default function RankingScreen() {
     () => buildRanking(members, predictions, finishedMatches),
     [members, predictions, finishedMatches]
   );
+
+  // Estadísticas del grupo
+  const groupStats = useMemo(() => {
+    if (ranking.length === 0 || finishedMatches.length === 0) return null;
+    const nameOf = (uid: string) => members.find((m) => m.userId === uid)?.displayName ?? '?';
+
+    // Más exactos y más activo (de RankingEntry)
+    const topExact  = [...ranking].sort((a, b) => b.exactHits - a.exactHits)[0];
+    const topActive = [...ranking].sort((a, b) => b.predicted - a.predicted)[0];
+
+    // Partido más/menos acertado por el grupo (sobre marcador exacto)
+    const finishedMap = new Map(finishedMatches.map((m) => [m.id, m]));
+    const perMatch = finishedMatches.map((m) => {
+      const preds = predictions.filter((p) => p.matchId === m.id);
+      let exact = 0;
+      for (const p of preds) if (calculatePoints(p, m) === 5) exact++;
+      return { match: m, total: preds.length, exact };
+    }).filter((s) => s.total > 0);
+    const bestMatch  = [...perMatch].sort((a, b) => b.exact - a.exact)[0];
+
+    return {
+      topExact: topExact && topExact.exactHits > 0 ? { name: topExact.displayName, value: topExact.exactHits } : null,
+      topActive: topActive && topActive.predicted > 0 ? { name: topActive.displayName, value: topActive.predicted } : null,
+      bestMatch: bestMatch && bestMatch.exact > 0 ? bestMatch : null,
+    };
+  }, [ranking, predictions, finishedMatches, members]);
 
   useEffect(() => {
     if (groups.length > 0 && !selectedGroup) setSelectedGroup(groups[0]);
@@ -144,9 +171,44 @@ export default function RankingScreen() {
           keyExtractor={(r) => r.userId}
           contentContainerStyle={styles.list}
           ListHeaderComponent={
-            ranking.length > 0
-              ? <Podium top3={ranking.slice(0, 3)} currentUserId={user?.uid} />
-              : null
+            <>
+              {ranking.length > 0 && <Podium top3={ranking.slice(0, 3)} currentUserId={user?.uid} />}
+              {groupStats && (
+                <View style={styles.statsSection}>
+                  <Text style={styles.statsSectionTitle}>Destacados del grupo</Text>
+                  {groupStats.topExact && (
+                    <View style={styles.statCard}>
+                      <Text style={styles.statIcon}>🎯</Text>
+                      <View style={styles.statTextBlock}>
+                        <Text style={styles.statCardLabel}>Más marcadores exactos</Text>
+                        <Text style={styles.statCardValue}>{groupStats.topExact.name} · {groupStats.topExact.value}</Text>
+                      </View>
+                    </View>
+                  )}
+                  {groupStats.topActive && (
+                    <View style={styles.statCard}>
+                      <Text style={styles.statIcon}>📝</Text>
+                      <View style={styles.statTextBlock}>
+                        <Text style={styles.statCardLabel}>Más predicciones hechas</Text>
+                        <Text style={styles.statCardValue}>{groupStats.topActive.name} · {groupStats.topActive.value}</Text>
+                      </View>
+                    </View>
+                  )}
+                  {groupStats.bestMatch && (
+                    <View style={styles.statCard}>
+                      <Text style={styles.statIcon}>🔥</Text>
+                      <View style={styles.statTextBlock}>
+                        <Text style={styles.statCardLabel}>Partido más acertado</Text>
+                        <Text style={styles.statCardValue}>
+                          {FLAG[groupStats.bestMatch.match.homeTeam]} {groupStats.bestMatch.match.homeScore}–{groupStats.bestMatch.match.awayScore} {FLAG[groupStats.bestMatch.match.awayTeam]} · {groupStats.bestMatch.exact}/{groupStats.bestMatch.total}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+              {ranking.length > 3 && <Text style={styles.statsSectionTitle}>Clasificación</Text>}
+            </>
           }
           renderItem={({ item, index }) => (
             <RankingItem entry={item} position={index + 4} isCurrentUser={item.userId === user?.uid} />
@@ -184,6 +246,13 @@ const styles = StyleSheet.create({
   title:     { color: T.color.ink, fontSize: 27, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
   shareBtn:  { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: T.color.soft, borderRadius: T.radius.chip, paddingHorizontal: 12, paddingVertical: 7 },
   shareBtnText: { color: T.color.accent, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
+  statsSection: { paddingHorizontal: T.space.lg, paddingTop: T.space.sm, gap: T.space.sm },
+  statsSectionTitle: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: T.space.lg, paddingTop: T.space.md, paddingBottom: 4 },
+  statCard: { flexDirection: 'row', alignItems: 'center', gap: T.space.md, backgroundColor: T.color.surface, borderRadius: T.radius.card, padding: T.space.md, borderWidth: 1, borderColor: T.color.line, ...T.shadow },
+  statIcon: { fontSize: 22 },
+  statTextBlock: { flex: 1, gap: 2 },
+  statCardLabel: { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium' },
+  statCardValue: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   offscreen: { position: 'absolute', left: -9999, top: 0 },
   shareCard: { width: 360, backgroundColor: T.color.surface, padding: 24, gap: 4 },
   shareTitle: { color: T.color.ink, fontSize: 22, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
