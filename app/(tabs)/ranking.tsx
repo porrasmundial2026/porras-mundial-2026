@@ -51,24 +51,27 @@ export default function RankingScreen() {
     if (ranking.length === 0 || finishedMatches.length === 0) return null;
     const nameOf = (uid: string) => members.find((m) => m.userId === uid)?.displayName ?? '?';
 
-    // Más exactos y más activo (de RankingEntry)
-    const topExact  = [...ranking].sort((a, b) => b.exactHits - a.exactHits)[0];
-    const topActive = [...ranking].sort((a, b) => b.predicted - a.predicted)[0];
+    // Más exactos (de RankingEntry)
+    const topExact = [...ranking].sort((a, b) => b.exactHits - a.exactHits)[0];
 
-    // Partido más/menos acertado por el grupo (sobre marcador exacto)
-    const finishedMap = new Map(finishedMatches.map((m) => [m.id, m]));
+    // Partido más/menos acertado por el grupo
     const perMatch = finishedMatches.map((m) => {
       const preds = predictions.filter((p) => p.matchId === m.id);
-      let exact = 0;
-      for (const p of preds) if (calculatePoints(p, m) === 5) exact++;
-      return { match: m, total: preds.length, exact };
+      let exact = 0, hits = 0;
+      for (const p of preds) {
+        const pts = calculatePoints(p, m);
+        if (pts === 5) exact++;
+        if (pts > 0) hits++;
+      }
+      return { match: m, total: preds.length, exact, hitRate: preds.length ? hits / preds.length : 0 };
     }).filter((s) => s.total > 0);
     const bestMatch  = [...perMatch].sort((a, b) => b.exact - a.exact)[0];
+    const worstMatch = [...perMatch].sort((a, b) => a.hitRate - b.hitRate)[0];
 
     return {
       topExact: topExact && topExact.exactHits > 0 ? { name: topExact.displayName, value: topExact.exactHits } : null,
-      topActive: topActive && topActive.predicted > 0 ? { name: topActive.displayName, value: topActive.predicted } : null,
       bestMatch: bestMatch && bestMatch.exact > 0 ? bestMatch : null,
+      worstMatch: worstMatch ? worstMatch : null,
     };
   }, [ranking, predictions, finishedMatches, members]);
 
@@ -185,22 +188,24 @@ export default function RankingScreen() {
                       </View>
                     </View>
                   )}
-                  {groupStats.topActive && (
-                    <View style={styles.statCard}>
-                      <Text style={styles.statIcon}>📝</Text>
-                      <View style={styles.statTextBlock}>
-                        <Text style={styles.statCardLabel}>Más predicciones hechas</Text>
-                        <Text style={styles.statCardValue}>{groupStats.topActive.name} · {groupStats.topActive.value}</Text>
-                      </View>
-                    </View>
-                  )}
                   {groupStats.bestMatch && (
                     <View style={styles.statCard}>
                       <Text style={styles.statIcon}>🔥</Text>
                       <View style={styles.statTextBlock}>
                         <Text style={styles.statCardLabel}>Partido más acertado</Text>
                         <Text style={styles.statCardValue}>
-                          {FLAG[groupStats.bestMatch.match.homeTeam]} {groupStats.bestMatch.match.homeScore}–{groupStats.bestMatch.match.awayScore} {FLAG[groupStats.bestMatch.match.awayTeam]} · {groupStats.bestMatch.exact}/{groupStats.bestMatch.total}
+                          {FLAG[groupStats.bestMatch.match.homeTeam]} {groupStats.bestMatch.match.homeScore}–{groupStats.bestMatch.match.awayScore} {FLAG[groupStats.bestMatch.match.awayTeam]} · {groupStats.bestMatch.exact}/{groupStats.bestMatch.total} exactos
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {groupStats.worstMatch && (
+                    <View style={styles.statCard}>
+                      <Text style={styles.statIcon}>😵</Text>
+                      <View style={styles.statTextBlock}>
+                        <Text style={styles.statCardLabel}>Partido más fallado</Text>
+                        <Text style={styles.statCardValue}>
+                          {FLAG[groupStats.worstMatch.match.homeTeam]} {groupStats.worstMatch.match.homeScore}–{groupStats.worstMatch.match.awayScore} {FLAG[groupStats.worstMatch.match.awayTeam]} · {Math.round(groupStats.worstMatch.hitRate * 100)}% acertó
                         </Text>
                       </View>
                     </View>
