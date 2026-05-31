@@ -4,14 +4,24 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 import { useAuth } from '../../contexts/AuthContext';
 import { T } from '../../constants/theme';
 
 const logo = require('../../assets/portada-logo.png');
+
+// Google Sign-In es un módulo nativo: no existe en Expo Go.
+// Lo cargamos de forma tolerante para no romper el desarrollo en Expo Go.
+let GoogleSignin: any = null;
+let statusCodes: any = {};
+let googleAvailable = false;
+try {
+  const gs = require('@react-native-google-signin/google-signin');
+  GoogleSignin = gs.GoogleSignin;
+  statusCodes = gs.statusCodes;
+  googleAvailable = !!GoogleSignin?.configure;
+} catch {
+  googleAvailable = false;
+}
 
 export default function LoginScreen() {
   const { signIn, signInWithGoogle } = useAuth();
@@ -23,12 +33,18 @@ export default function LoginScreen() {
   const [passwordFocus, setPasswordFocus] = useState(false);
 
   useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
-    });
+    if (googleAvailable) {
+      GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
+      });
+    }
   }, []);
 
   async function handleGoogleLogin() {
+    if (!googleAvailable) {
+      setError('El login con Google solo funciona en la app instalada, no en Expo Go.');
+      return;
+    }
     setError(''); setLoading(true);
     try {
       await GoogleSignin.hasPlayServices();
@@ -104,21 +120,25 @@ export default function LoginScreen() {
               : <Text style={styles.btnText}>Entrar</Text>}
           </Pressable>
 
-          {/* Separador */}
-          <View style={styles.divider}>
-            <View style={styles.line} />
-            <Text style={styles.or}>o</Text>
-            <View style={styles.line} />
-          </View>
+          {googleAvailable && (
+            <>
+              {/* Separador */}
+              <View style={styles.divider}>
+                <View style={styles.line} />
+                <Text style={styles.or}>o</Text>
+                <View style={styles.line} />
+              </View>
 
-          {/* Google */}
-          <Pressable style={styles.googleBtn} onPress={handleGoogleLogin} disabled={loading}>
-            <Image
-              source={{ uri: 'https://www.google.com/favicon.ico' }}
-              style={styles.googleIcon}
-            />
-            <Text style={styles.googleText}>Continuar con Google</Text>
-          </Pressable>
+              {/* Google */}
+              <Pressable style={styles.googleBtn} onPress={handleGoogleLogin} disabled={loading}>
+                <Image
+                  source={{ uri: 'https://www.google.com/favicon.ico' }}
+                  style={styles.googleIcon}
+                />
+                <Text style={styles.googleText}>Continuar con Google</Text>
+              </Pressable>
+            </>
+          )}
         </View>
 
         {/* Pie */}
