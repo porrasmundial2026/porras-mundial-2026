@@ -23,7 +23,6 @@ type SortMode   = 'group' | 'date';
 const FILTERS: { key: PhaseFilter; label: string }[] = [
   { key: 'group',    label: 'Grupos' },
   { key: 'knockout', label: 'Eliminatoria' },
-  { key: 'all',      label: 'Todos' },
 ];
 
 interface Member { uid: string; displayName: string }
@@ -93,7 +92,7 @@ export default function PrediccionesScreen() {
       filtered = filtered.filter((m) => m.status === 'upcoming' && !getPrediction(m.id));
     }
 
-    if (sortMode === 'date') {
+    if (sortMode === 'date' || filter === 'knockout') {
       // Sección única ordenada por fecha
       const sorted = [...filtered].sort((a, b) =>
         new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
@@ -118,7 +117,8 @@ export default function PrediccionesScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Predicciones</Text>
 
-        {/* Selector de usuario */}
+        {/* Selector de usuario + filtro sin rellenar */}
+        <View style={styles.selectorRow}>
         {hasMembers && (
           <Pressable style={styles.userSelector} onPress={() => setModalVisible(true)}>
             <View style={styles.userSelectorLeft}>
@@ -139,6 +139,22 @@ export default function PrediccionesScreen() {
             <Ionicons name="chevron-down" size={16} color={T.color.ink3} />
           </Pressable>
         )}
+        {!viewingOther && (
+          <Pressable
+            style={[styles.userSelector, onlyEmpty && styles.userSelectorActive]}
+            onPress={() => setOnlyEmpty((v) => !v)}
+          >
+            <Ionicons
+              name={onlyEmpty ? 'filter' : 'filter-outline'}
+              size={14}
+              color={onlyEmpty ? T.color.accentInk : T.color.ink3}
+            />
+            <Text style={[styles.userSelectorLabel, onlyEmpty && { color: T.color.accentInk }]}>
+              Sin rellenar
+            </Text>
+          </Pressable>
+        )}
+        </View>
 
         {/* Filtros de fase */}
         <View style={styles.filters}>
@@ -155,25 +171,21 @@ export default function PrediccionesScreen() {
 
         {/* Ordenación y filtro vacías */}
         <View style={styles.filters}>
-          <Pressable
-            style={[styles.chip, sortMode === 'group' && styles.chipActive]}
-            onPress={() => setSortMode('group')}
-          >
-            <Text style={[styles.chipText, sortMode === 'group' && styles.chipTextActive]}>Por grupo</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.chip, sortMode === 'date' && styles.chipActive]}
-            onPress={() => setSortMode('date')}
-          >
-            <Text style={[styles.chipText, sortMode === 'date' && styles.chipTextActive]}>Por fecha</Text>
-          </Pressable>
-          {!viewingOther && (
-            <Pressable
-              style={[styles.chip, onlyEmpty && styles.chipActive]}
-              onPress={() => setOnlyEmpty((v) => !v)}
-            >
-              <Text style={[styles.chipText, onlyEmpty && styles.chipTextActive]}>Sin rellenar</Text>
-            </Pressable>
+          {filter === 'group' && (
+            <>
+              <Pressable
+                style={[styles.chip, sortMode === 'group' && styles.chipActive]}
+                onPress={() => setSortMode('group')}
+              >
+                <Text style={[styles.chipText, sortMode === 'group' && styles.chipTextActive]}>Por grupo</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.chip, sortMode === 'date' && styles.chipActive]}
+                onPress={() => setSortMode('date')}
+              >
+                <Text style={[styles.chipText, sortMode === 'date' && styles.chipTextActive]}>Por fecha</Text>
+              </Pressable>
+            </>
           )}
         </View>
       </View>
@@ -288,6 +300,8 @@ const styles = StyleSheet.create({
   userSelectorLeft: { flexDirection: 'row', alignItems: 'center', gap: T.space.sm },
   avatarSmall:      { width: 24, height: 24, borderRadius: 12, backgroundColor: T.color.soft, alignItems: 'center', justifyContent: 'center' },
   avatarSmallText:  { color: T.color.accent, fontSize: 12, fontFamily: 'SchibstedGrotesk_700Bold' },
+  selectorRow:      { flexDirection: 'row', gap: T.space.sm, flexWrap: 'wrap' },
+  userSelectorActive: { backgroundColor: T.color.accent, borderColor: T.color.accent },
   userSelectorLabel:{ color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
   userSelectorGroup:{ color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
 
