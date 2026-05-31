@@ -6,7 +6,6 @@ import {
 import { Link, router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import * as AuthSession from 'expo-auth-session';
 import { useAuth } from '../../contexts/AuthContext';
 import { T } from '../../constants/theme';
 
@@ -23,11 +22,9 @@ export default function LoginScreen() {
   const [emailFocus, setEmailFocus]       = useState(false);
   const [passwordFocus, setPasswordFocus] = useState(false);
 
-  const redirectUri = AuthSession.makeRedirectUri({ scheme: 'porras-mundial' });
-
   const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
-    redirectUri,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID,
+    webClientId:     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
   });
 
   React.useEffect(() => {
