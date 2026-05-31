@@ -66,7 +66,7 @@ export function MatchCard({ match, prediction, onSave, readOnly = false }: Props
         <View style={styles.center}>
           {isFinished || isLive ? (
             <>
-              <Text style={styles.score}>{match.homeScore} – {match.awayScore}</Text>
+              <Text style={[styles.score, isFinished && styles.scoreFinal]}>{match.homeScore} – {match.awayScore}</Text>
               {isLive
                 ? <View style={styles.liveBadge}><Text style={styles.liveText}>EN VIVO</Text></View>
                 : <Text style={styles.finLabel}>FIN</Text>}
@@ -178,6 +178,7 @@ const styles = StyleSheet.create({
   teamNameRight: { textAlign: 'right' },
   center:    { width: 80, alignItems: 'center', gap: 2 },
   score:     { color: T.color.ink, fontSize: 22, fontFamily: 'SchibstedGrotesk_700Bold' },
+  scoreFinal:{ color: T.color.good },
   finLabel:  { color: T.color.ink3, fontSize: 10, fontFamily: 'HankenGrotesk_500Medium', letterSpacing: 0.8 },
   time:      { color: T.color.ink, fontSize: 18, fontFamily: 'SchibstedGrotesk_700Bold' },
   dateSmall: { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_500Medium' },
