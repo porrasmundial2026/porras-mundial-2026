@@ -26,9 +26,22 @@ export default function PerfilScreen() {
     const match = finishedMatchMap.get(p.matchId)!;
     return calculatePoints(p, match);
   });
-  const totalPoints = livePoints.reduce((acc, pts) => acc + pts, 0);
-  const exactHits   = livePoints.filter((pts) => pts === 5).length;
-  const resultHits  = livePoints.filter((pts) => pts === 2).length;
+  const totalPoints  = livePoints.reduce((acc, pts) => acc + pts, 0);
+  const exactHits    = livePoints.filter((pts) => pts === 5).length;
+  const resultHits   = livePoints.filter((pts) => pts === 2).length;
+  const totalPlayed  = livePoints.length;
+  const pctExact     = totalPlayed > 0 ? Math.round((exactHits / totalPlayed) * 100) : 0;
+  const pctCorrect   = totalPlayed > 0 ? Math.round(((exactHits + resultHits) / totalPlayed) * 100) : 0;
+
+  // Racha máxima de aciertos consecutivos (exacto o resultado)
+  const maxStreak = (() => {
+    let best = 0, current = 0;
+    for (const pts of livePoints) {
+      if (pts > 0) { current++; best = Math.max(best, current); }
+      else current = 0;
+    }
+    return best;
+  })();
 
   async function handleSaveName() {
     if (!newName.trim()) return;
@@ -106,10 +119,35 @@ export default function PerfilScreen() {
           <Text style={styles.statLabel}>Exactas</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{resultHits}</Text>
-          <Text style={styles.statLabel}>Resultados</Text>
+          <Text style={styles.statValue}>{maxStreak}</Text>
+          <Text style={styles.statLabel}>Racha máx.</Text>
         </View>
       </View>
+
+      {/* Estadísticas de acierto */}
+      {totalPlayed > 0 && (
+        <View style={styles.infoBox}>
+          <Text style={styles.infoLabel}>Estadísticas de acierto</Text>
+
+          <View style={styles.statRow}>
+            <Text style={styles.statRowLabel}>Exactos</Text>
+            <View style={styles.barBg}>
+              <View style={[styles.barFill, { width: `${pctExact}%`, backgroundColor: T.color.good }]} />
+            </View>
+            <Text style={styles.statRowPct}>{pctExact}%</Text>
+          </View>
+
+          <View style={styles.statRow}>
+            <Text style={styles.statRowLabel}>Correctos</Text>
+            <View style={styles.barBg}>
+              <View style={[styles.barFill, { width: `${pctCorrect}%`, backgroundColor: '#d97706' }]} />
+            </View>
+            <Text style={styles.statRowPct}>{pctCorrect}%</Text>
+          </View>
+
+          <Text style={styles.statSub}>{totalPlayed} partidos jugados · {exactHits + resultHits} aciertos · {totalPlayed - exactHits - resultHits} fallos</Text>
+        </View>
+      )}
 
       {/* Sistema de puntuación */}
       <View style={styles.infoBox}>
@@ -164,6 +202,12 @@ const styles = StyleSheet.create({
   infoRow:   { flexDirection: 'row', alignItems: 'center', gap: T.space.sm },
   infoPts:   { fontSize: 15, fontFamily: 'SchibstedGrotesk_700Bold', width: 44 },
   infoDesc:  { color: T.color.ink, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium' },
+  statRow:      { flexDirection: 'row', alignItems: 'center', gap: T.space.sm },
+  statRowLabel: { color: T.color.ink2, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium', width: 70 },
+  barBg:        { flex: 1, height: 8, borderRadius: 4, backgroundColor: T.color.line, overflow: 'hidden' },
+  barFill:      { height: 8, borderRadius: 4 },
+  statRowPct:   { color: T.color.ink, fontSize: 13, fontFamily: 'SchibstedGrotesk_700Bold', width: 40, textAlign: 'right' },
+  statSub:      { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular', marginTop: 4 },
   adminBtn:  { marginHorizontal: T.space.lg, marginTop: 'auto', backgroundColor: T.color.soft, borderRadius: T.radius.card, paddingVertical: 15, alignItems: 'center' },
   adminText: { color: T.color.accent, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   logoutBtn: { margin: T.space.lg, backgroundColor: T.color.surface, borderRadius: T.radius.card, paddingVertical: 15, alignItems: 'center', borderWidth: 1, borderColor: '#FCA5A5' },

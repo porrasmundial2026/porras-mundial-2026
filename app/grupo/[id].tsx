@@ -63,8 +63,9 @@ export default function GrupoDetailScreen() {
 
   async function shareCode() {
     if (!group) return;
+    const link = `porras-mundial://grupo/unirse?code=${group.code}`;
     await Share.share({
-      message: `¡Únete a mi grupo "${group.name}" en Porras Mundial 2026! Código: ${group.code}`,
+      message: `¡Únete a mi grupo "${group.name}" en Porras Mundial 2026! 🏆\n\nCódigo: ${group.code}\n\nO entra directamente con este enlace (si ya tienes la app):\n${link}`,
     });
   }
 

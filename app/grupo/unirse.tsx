@@ -1,30 +1,41 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, Pressable, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useGroups } from '../../hooks/useGroup';
 import { C } from '../../constants/theme';
 
 export default function UnirseGrupoScreen() {
   const { joinGroup } = useGroups();
-  const [code, setCode] = useState('');
+  const params = useLocalSearchParams<{ code?: string }>();
+  const [code, setCode] = useState((params.code ?? '').toUpperCase());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const autoJoined = useRef(false);
 
-  async function handleJoin() {
-    if (code.trim().length !== 6) { setError('El código tiene 6 caracteres'); return; }
+  async function handleJoin(codeArg?: string) {
+    const c = (codeArg ?? code).trim().toUpperCase();
+    if (c.length !== 6) { setError('El código tiene 6 caracteres'); return; }
     setError('');
     setLoading(true);
     try {
-      const group = await joinGroup(code.trim());
+      const group = await joinGroup(c);
       router.replace(`/grupo/${group.id}`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error al unirse al grupo');
       setLoading(false);
     }
   }
+
+  // Si llega un código por enlace de invitación, intentar unirse automáticamente
+  useEffect(() => {
+    if (params.code && params.code.length === 6 && !autoJoined.current) {
+      autoJoined.current = true;
+      handleJoin(params.code);
+    }
+  }, [params.code]);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
