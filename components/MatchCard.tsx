@@ -93,13 +93,18 @@ export function MatchCard({ match, prediction, onSave, readOnly = false }: Props
         <Text style={styles.venue} numberOfLines={1}>{match.venue}</Text>
         <View style={styles.footerRight}>
           {isFinished && hasPred && pts != null ? (
-            pts === 5 ? (
-              <View style={styles.exactBadge}><Text style={styles.exactText}>+5 pts</Text></View>
-            ) : pts === 2 ? (
-              <View style={styles.resultBadge}><Text style={styles.resultText}>+2 pts</Text></View>
-            ) : (
-              <View style={styles.missBadge}><Text style={styles.missText}>0 pts</Text></View>
-            )
+            <View style={styles.footerRow}>
+              <View style={styles.predBadge}>
+                <Text style={styles.predText}>Tu pred · {prediction!.homeScore}–{prediction!.awayScore}</Text>
+              </View>
+              {pts === 5 ? (
+                <View style={styles.exactBadge}><Text style={styles.exactText}>+5 pts</Text></View>
+              ) : pts === 2 ? (
+                <View style={styles.resultBadge}><Text style={styles.resultText}>+2 pts</Text></View>
+              ) : (
+                <View style={styles.missBadge}><Text style={styles.missText}>0 pts</Text></View>
+              )}
+            </View>
           ) : hasPred ? (
             <View style={styles.predBadge}>
               <Text style={styles.predText}>Tu pred · {prediction!.homeScore}–{prediction!.awayScore}</Text>
@@ -115,15 +120,6 @@ export function MatchCard({ match, prediction, onSave, readOnly = false }: Props
           ) : null}
         </View>
       </View>
-
-      {/* Resultado final + puntos */}
-      {isFinished && hasPred && (
-        <View style={styles.resultRow}>
-          <Text style={styles.resultInfo}>
-            Resultado final: {match.homeScore}–{match.awayScore}
-          </Text>
-        </View>
-      )}
 
       {/* Input inline */}
       {expanded && isPredictable && (
@@ -191,6 +187,7 @@ const styles = StyleSheet.create({
   footer:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   venue:     { flex: 1, color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
   footerRight: { flexShrink: 0 },
+  footerRow:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
   predBadge:   { backgroundColor: T.color.soft, borderRadius: T.radius.chip, paddingHorizontal: 10, paddingVertical: 4 },
   predText:    { color: T.color.accent, fontSize: 12, fontFamily: 'HankenGrotesk_700Bold' },
   ctaBtn:      { backgroundColor: T.color.accent, borderRadius: T.radius.chip, paddingHorizontal: 12, paddingVertical: 5 },
