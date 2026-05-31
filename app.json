@@ -35,7 +35,8 @@
           "backgroundColor": "#F5F5F7"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true

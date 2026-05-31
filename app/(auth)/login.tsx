@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, Pressable, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { useAuth } from '../../contexts/AuthContext';
 import { T } from '../../constants/theme';
 
 const logo = require('../../assets/portada-logo.png');
-
-WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const { signIn, signInWithGoogle } = useAuth();
@@ -22,25 +22,27 @@ export default function LoginScreen() {
   const [emailFocus, setEmailFocus]       = useState(false);
   const [passwordFocus, setPasswordFocus] = useState(false);
 
-  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID,
-    webClientId:     process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
-  });
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
+    });
+  }, []);
 
-  React.useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const { id_token } = googleResponse.params;
-      handleGoogleLogin(id_token);
-    }
-  }, [googleResponse]);
-
-  async function handleGoogleLogin(idToken: string) {
+  async function handleGoogleLogin() {
     setError(''); setLoading(true);
     try {
+      await GoogleSignin.hasPlayServices();
+      const result = await GoogleSignin.signIn();
+      const idToken = (result as any).data?.idToken ?? (result as any).idToken;
+      if (!idToken) throw new Error('No se obtuvo el token de Google');
       await signInWithGoogle(idToken);
       router.replace('/(tabs)');
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error con Google');
+    } catch (e: any) {
+      if (e?.code === statusCodes.SIGN_IN_CANCELLED) {
+        // usuario canceló, no mostrar error
+      } else {
+        setError(e instanceof Error ? e.message : 'Error con Google');
+      }
     } finally { setLoading(false); }
   }
 
@@ -110,7 +112,7 @@ export default function LoginScreen() {
           </View>
 
           {/* Google */}
-          <Pressable style={styles.googleBtn} onPress={() => promptGoogleAsync()} disabled={loading}>
+          <Pressable style={styles.googleBtn} onPress={handleGoogleLogin} disabled={loading}>
             <Image
               source={{ uri: 'https://www.google.com/favicon.ico' }}
               style={styles.googleIcon}
