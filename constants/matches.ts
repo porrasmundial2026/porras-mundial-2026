@@ -4,19 +4,20 @@ import { Match } from '../types';
 // Group stage dates are approximate; update once FIFA publishes official schedule
 // Teams from official draw (December 5, 2024)
 
+// Grupos oficiales del sorteo del Mundial 2026 (5 diciembre 2025)
 export const GROUPS: Record<string, { teams: string[] }> = {
-  A: { teams: ['Estados Unidos', 'Uruguay', 'Panamá', 'Bolivia'] },
-  B: { teams: ['México', 'Ecuador', 'Jamaica', 'Venezuela'] },
-  C: { teams: ['Canadá', 'Marruecos', 'Bélgica', 'Croacia'] },
-  D: { teams: ['Francia', 'Brasil', 'Albania', 'Arabia Saudita'] },
-  E: { teams: ['España', 'Argentina', 'Nigeria', 'Nueva Zelanda'] },
-  F: { teams: ['Inglaterra', 'Portugal', 'Colombia', 'Senegal'] },
-  G: { teams: ['Alemania', 'Países Bajos', 'Costa Rica', 'Australia'] },
-  H: { teams: ['Italia', 'Chile', 'Camerún', 'Uzbekistán'] },
-  I: { teams: ['Turquía', 'Japón', 'Ghana', 'Serbia'] },
-  J: { teams: ['Irán', 'Dinamarca', 'Argelia', 'Honduras'] },
-  K: { teams: ['Suiza', 'Corea del Sur', 'Túnez', 'Escocia'] },
-  L: { teams: ['Polonia', 'Austria', 'Irak', 'Sudáfrica'] },
+  A: { teams: ['México', 'Sudáfrica', 'Corea del Sur', 'República Checa'] },
+  B: { teams: ['Canadá', 'Bosnia y Herzegovina', 'Catar', 'Suiza'] },
+  C: { teams: ['Brasil', 'Marruecos', 'Haití', 'Escocia'] },
+  D: { teams: ['Estados Unidos', 'Paraguay', 'Australia', 'Turquía'] },
+  E: { teams: ['Alemania', 'Curazao', 'Costa de Marfil', 'Ecuador'] },
+  F: { teams: ['Países Bajos', 'Japón', 'Suecia', 'Túnez'] },
+  G: { teams: ['Bélgica', 'Egipto', 'Irán', 'Nueva Zelanda'] },
+  H: { teams: ['España', 'Cabo Verde', 'Arabia Saudita', 'Uruguay'] },
+  I: { teams: ['Francia', 'Senegal', 'Irak', 'Noruega'] },
+  J: { teams: ['Argentina', 'Argelia', 'Austria', 'Jordania'] },
+  K: { teams: ['Portugal', 'RD Congo', 'Uzbekistán', 'Colombia'] },
+  L: { teams: ['Inglaterra', 'Croacia', 'Ghana', 'Panamá'] },
 };
 
 // Generate group stage matches (6 per group = 72 total)
