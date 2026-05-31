@@ -71,17 +71,6 @@ async function sync() {
   const data = await res.json();
   const matches = data.matches ?? [];
 
-  // --- DIAGNÓSTICO TEMPORAL ---
-  console.log(`TOTAL partidos devueltos por la API: ${matches.length}`);
-  const byStatus = {};
-  for (const m of matches) byStatus[m.status] = (byStatus[m.status] ?? 0) + 1;
-  console.log('Desglose por estado:', JSON.stringify(byStatus));
-  if (matches.length > 0) {
-    const ej = matches[0];
-    console.log(`Ejemplo: ${ej.homeTeam?.name} vs ${ej.awayTeam?.name} [${ej.status}] ${ej.utcDate}`);
-  }
-  // --- FIN DIAGNÓSTICO ---
-
   const active = matches.filter(
     (m) => m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'HALFTIME'
   );
