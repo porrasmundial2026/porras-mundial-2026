@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, Pressable, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image, Keyboard,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -31,6 +31,13 @@ export default function LoginScreen() {
   const [error, setError]       = useState('');
   const [emailFocus, setEmailFocus]       = useState(false);
   const [passwordFocus, setPasswordFocus] = useState(false);
+  const [keyboardOpen, setKeyboardOpen]   = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   useEffect(() => {
     if (googleAvailable) {
@@ -77,9 +84,13 @@ export default function LoginScreen() {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
-        {/* Logo */}
+        {/* Logo: grande normalmente, pequeño cuando el teclado está abierto */}
         <View style={styles.header}>
-          <Image source={logo} style={styles.logoImg} resizeMode="contain" />
+          <Image
+            source={logo}
+            style={keyboardOpen ? styles.logoImgSmall : styles.logoImg}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Formulario */}
@@ -169,7 +180,8 @@ const styles = StyleSheet.create({
 
   // Header
   header:  { alignItems: 'center', gap: 12 },
-  logoImg: { width: '100%', height: 230, marginBottom: -8 },
+  logoImg:      { width: '100%', aspectRatio: 1, marginBottom: -8 },
+  logoImgSmall: { width: '45%', aspectRatio: 1, alignSelf: 'center', marginBottom: -8 },
   title:   { color: T.color.ink, fontSize: 26, fontFamily: 'SchibstedGrotesk_800ExtraBold', textAlign: 'center' },
   sub:     { color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center' },
 
