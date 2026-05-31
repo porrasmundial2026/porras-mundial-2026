@@ -1,6 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import ViewShot from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useGroups } from '../../hooks/useGroup';
@@ -18,6 +21,19 @@ export default function RankingScreen() {
   const liveMatches = useMatchResults();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [loadingRanking, setLoadingRanking] = useState(false);
+  const shotRef = useRef<ViewShot>(null);
+
+  async function shareRanking() {
+    try {
+      if (!shotRef.current?.capture) return;
+      const uri = await shotRef.current.capture();
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Compartir ranking' });
+      }
+    } catch {
+      // captura cancelada o error
+    }
+  }
   const [members, setMembers] = useState<{ userId: string; displayName: string; photoURL: string | null }[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
 
@@ -76,7 +92,15 @@ export default function RankingScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Ranking</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Ranking</Text>
+          {ranking.length > 0 && (
+            <Pressable style={styles.shareBtn} onPress={shareRanking}>
+              <Ionicons name="share-social" size={16} color={T.color.accent} />
+              <Text style={styles.shareBtnText}>Compartir</Text>
+            </Pressable>
+          )}
+        </View>
 
         {groups.length > 1 && (
           <FlatList
@@ -129,6 +153,25 @@ export default function RankingScreen() {
           )}
         />
       )}
+
+      {/* Tarjeta oculta para capturar y compartir */}
+      <View style={styles.offscreen} pointerEvents="none">
+        <ViewShot ref={shotRef} options={{ format: 'png', quality: 1 }}>
+          <View style={styles.shareCard}>
+            <Text style={styles.shareTitle}>🏆 {selectedGroup?.name ?? 'Ranking'}</Text>
+            <Text style={styles.shareSubtitle}>Porras Mundial 2026</Text>
+            <View style={styles.shareDivider} />
+            {ranking.map((entry, i) => (
+              <View key={entry.userId} style={styles.shareRow}>
+                <Text style={[styles.sharePos, i < 3 && styles.sharePosTop]}>{i + 1}</Text>
+                <Text style={styles.shareName} numberOfLines={1}>{entry.displayName}</Text>
+                <Text style={styles.sharePts}>{entry.totalPoints} pts</Text>
+              </View>
+            ))}
+            <Text style={styles.shareFooter}>Predice. Compite. Gana.</Text>
+          </View>
+        </ViewShot>
+      </View>
     </View>
   );
 }
@@ -137,7 +180,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.color.bg },
   center:    { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: T.color.bg },
   header:    { paddingHorizontal: T.space.xl, paddingTop: 56, paddingBottom: T.space.lg, gap: T.space.sm, backgroundColor: T.color.bg },
+  titleRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title:     { color: T.color.ink, fontSize: 27, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
+  shareBtn:  { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: T.color.soft, borderRadius: T.radius.chip, paddingHorizontal: 12, paddingVertical: 7 },
+  shareBtnText: { color: T.color.accent, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
+  offscreen: { position: 'absolute', left: -9999, top: 0 },
+  shareCard: { width: 360, backgroundColor: T.color.surface, padding: 24, gap: 4 },
+  shareTitle: { color: T.color.ink, fontSize: 22, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
+  shareSubtitle: { color: T.color.accent, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold', marginBottom: 8 },
+  shareDivider: { height: 2, backgroundColor: T.color.soft, marginBottom: 8 },
+  shareRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: T.color.line },
+  sharePos: { width: 28, color: T.color.ink3, fontSize: 15, fontFamily: 'SchibstedGrotesk_700Bold' },
+  sharePosTop: { color: T.color.accent },
+  shareName: { flex: 1, color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
+  sharePts: { color: T.color.ink, fontSize: 15, fontFamily: 'SchibstedGrotesk_700Bold' },
+  shareFooter: { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', marginTop: 12 },
   chip:       { paddingHorizontal: T.space.md, paddingVertical: T.space.xs, borderRadius: T.radius.chip, borderWidth: 1, borderColor: T.color.line },
   chipActive: { backgroundColor: T.color.accent, borderColor: T.color.accent },
   chipText:       { color: T.color.ink2, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
