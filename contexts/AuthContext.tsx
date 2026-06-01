@@ -34,43 +34,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          // Comprobar si el usuario está baneado
-          const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (snap.exists() && (snap.data() as any).banned) {
-            await signOut(auth);
-            setUser(null);
-            setProfile(null);
-            return;
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      // Camino crítico SIN awaits: la app deja de cargar de inmediato.
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        setProfile({
+          uid: firebaseUser.uid,
+          displayName: firebaseUser.displayName ?? 'Usuario',
+          email: firebaseUser.email ?? '',
+          photoURL: firebaseUser.photoURL,
+        });
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
+
+      // Tareas de Firestore en segundo plano (no bloquean la carga).
+      if (firebaseUser) {
+        (async () => {
+          try {
+            const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+            if (snap.exists() && (snap.data() as any).banned) {
+              await signOut(auth);
+              setUser(null);
+              setProfile(null);
+              return;
+            }
+            await ensureUserProfile(firebaseUser);
+          } catch {
+            // sin conexión / permisos: la app sigue funcionando
           }
-          await ensureUserProfile(firebaseUser);
-          setUser(firebaseUser);
-          setProfile({
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName ?? 'Usuario',
-            email: firebaseUser.email ?? '',
-            photoURL: firebaseUser.photoURL,
-          });
-        } else {
-          setUser(null);
-          setProfile(null);
-        }
-      } catch (e) {
-        // Si algo falla (red, permisos), no dejamos la app colgada en loading.
-        // Mantenemos al usuario autenticado si Firebase ya lo reconoció.
-        if (firebaseUser) {
-          setUser(firebaseUser);
-          setProfile({
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName ?? 'Usuario',
-            email: firebaseUser.email ?? '',
-            photoURL: firebaseUser.photoURL,
-          });
-        }
-      } finally {
-        setLoading(false);
+        })();
       }
     });
     return unsubscribe;
