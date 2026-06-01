@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, SectionList, StyleSheet, Pressable,
   Modal, FlatList, ActivityIndicator,
@@ -8,7 +8,7 @@ import { useFocusEffect } from 'expo-router';
 import { db } from '../../lib/firebase';
 import { MatchCard } from '../../components/MatchCard';
 import { usePredictions } from '../../hooks/usePredictions';
-import { useUserPredictions } from '../../hooks/useUserPredictions';
+import { useGroupPredictions } from '../../hooks/useGroupPredictions';
 import { useMatchResults } from '../../hooks/useMatchResults';
 import { useGroups } from '../../hooks/useGroup';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,68 +17,62 @@ import { Match, UserProfile } from '../../types';
 import { T } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-type PhaseFilter = 'group' | 'knockout' | 'all';
-type SortMode   = 'group' | 'date';
+type PhaseFilter = 'group' | 'knockout';
+type SortMode    = 'group' | 'date';
 
 const FILTERS: { key: PhaseFilter; label: string }[] = [
   { key: 'group',    label: 'Grupos' },
   { key: 'knockout', label: 'Eliminatoria' },
 ];
 
-interface Member { uid: string; displayName: string }
-interface GroupSection { groupId: string; groupName: string; members: Member[] }
+interface GroupInfo {
+  id: string;
+  name: string;
+  members: { uid: string; displayName: string }[];
+}
 
 export default function PrediccionesScreen() {
   const { user } = useAuth();
   const { getPrediction, savePrediction } = usePredictions();
   const liveMatches = useMatchResults();
   const { groups } = useGroups();
-  const [filter, setFilter]     = useState<PhaseFilter>('group');
-  const [sortMode, setSortMode] = useState<SortMode>('group');
+  const [filter, setFilter]       = useState<PhaseFilter>('group');
+  const [sortMode, setSortMode]   = useState<SortMode>('group');
   const [onlyEmpty, setOnlyEmpty] = useState(false);
 
-  // Selector de usuario
-  const [groupSections, setGroupSections] = useState<GroupSection[]>([]);
-  const [selectedUid, setSelectedUid]     = useState<string | null>(null); // null = yo
-  const [modalVisible, setModalVisible]   = useState(false);
+  // null = "Mis predicciones"; si no, id del grupo seleccionado
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [groupInfos, setGroupInfos] = useState<GroupInfo[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
-  const { getPrediction: getOtherPred, loading: loadingOther } = useUserPredictions(selectedUid);
-
-  // Cargar miembros agrupados por grupo (se recarga al volver a la pestaña)
+  // Cargar info (nombres de miembros) de cada grupo del usuario
   useFocusEffect(useCallback(() => {
-    if (!groups.length || !user) return;
+    if (!groups.length || !user) { setGroupInfos([]); return; }
     setLoadingMembers(true);
-
-    const otherGroups = groups.filter((g) => g.members.some((uid) => uid !== user.uid));
-    const allUids = [...new Set(otherGroups.flatMap((g) => g.members).filter((uid) => uid !== user.uid))];
-    if (!allUids.length) { setLoadingMembers(false); return; }
-
+    const allUids = [...new Set(groups.flatMap((g) => g.members))];
     Promise.all(allUids.map((uid) => getDoc(doc(db, 'users', uid)))).then((docs) => {
-      const profileMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       docs.filter((d) => d.exists()).forEach((d) => {
-        profileMap[d.id] = (d.data() as UserProfile).displayName;
+        nameMap[d.id] = (d.data() as UserProfile).displayName;
       });
-
-      setGroupSections(
-        otherGroups.map((g) => ({
-          groupId: g.id,
-          groupName: g.name,
-          members: g.members
-            .filter((uid) => uid !== user.uid && profileMap[uid])
-            .map((uid) => ({ uid, displayName: profileMap[uid] })),
-        })).filter((s) => s.members.length > 0)
+      setGroupInfos(
+        groups.map((g) => ({
+          id: g.id,
+          name: g.name,
+          members: g.members.map((uid) => ({ uid, displayName: nameMap[uid] ?? 'Usuario' })),
+        }))
       );
       setLoadingMembers(false);
-    });
+    }).catch(() => setLoadingMembers(false));
   }, [groups, user]));
 
-  const viewingOther   = selectedUid !== null;
-  const allMembers     = groupSections.flatMap((s) => s.members);
-  const hasMembers     = groupSections.length > 0;
-  const selectedName   = allMembers.find((m) => m.uid === selectedUid)?.displayName ?? 'Yo';
-  const selectedGroup  = groupSections.find((s) => s.members.some((m) => m.uid === selectedUid))?.groupName;
-  const activePred    = viewingOther ? getOtherPred : getPrediction;
+  const selectedGroup = groupInfos.find((g) => g.id === selectedGroupId) ?? null;
+  const viewingGroup  = selectedGroup !== null;
+  const memberUids    = selectedGroup ? selectedGroup.members.map((m) => m.uid) : [];
+  const nameOf        = (uid: string) => selectedGroup?.members.find((m) => m.uid === uid)?.displayName ?? '?';
+
+  const { byMatch, loading: loadingGroupPreds } = useGroupPredictions(memberUids);
 
   const sections = useMemo(() => {
     let filtered = liveMatches.filter((m) => {
@@ -87,110 +81,78 @@ export default function PrediccionesScreen() {
       return true;
     });
 
-    // Filtrar solo no rellenas (solo aplica en mis predicciones)
-    if (onlyEmpty && !viewingOther) {
+    if (onlyEmpty && !viewingGroup) {
       filtered = filtered.filter((m) => m.status === 'upcoming' && !getPrediction(m.id));
     }
 
     if (sortMode === 'date' || filter === 'knockout') {
-      // Sección única ordenada por fecha
       const sorted = [...filtered].sort((a, b) =>
         new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
       );
       return [{ title: 'Por fecha', data: sorted }];
     }
 
-    // Ordenación por grupo (comportamiento original)
     const bySection = new Map<string, Match[]>();
     for (const match of filtered) {
-      const key = match.phase === 'group' && match.group
-        ? `Grupo ${match.group}`
-        : PHASE_LABELS[match.phase];
+      const key = match.phase === 'group' && match.group ? `Grupo ${match.group}` : PHASE_LABELS[match.phase];
       if (!bySection.has(key)) bySection.set(key, []);
       bySection.get(key)!.push(match);
     }
     return Array.from(bySection.entries()).map(([title, data]) => ({ title, data }));
-  }, [filter, sortMode, onlyEmpty, liveMatches, getPrediction, viewingOther]);
+  }, [filter, sortMode, onlyEmpty, liveMatches, getPrediction, viewingGroup]);
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Predicciones</Text>
 
-        {/* Selector de usuario + filtro sin rellenar */}
+        {/* Selector vista + filtro sin rellenar */}
         <View style={styles.selectorRow}>
-        {hasMembers && (
-          <Pressable style={styles.userSelector} onPress={() => setModalVisible(true)}>
-            <View style={styles.userSelectorLeft}>
-              <View style={[styles.avatarSmall, viewingOther && { backgroundColor: T.color.line }]}>
-                <Text style={[styles.avatarSmallText, viewingOther && { color: T.color.ink }]}>
-                  {viewingOther ? selectedName.charAt(0).toUpperCase() : (user?.displayName ?? '?').charAt(0).toUpperCase()}
-                </Text>
-              </View>
-              <View>
+          {groupInfos.length > 0 && (
+            <Pressable style={styles.userSelector} onPress={() => setModalVisible(true)}>
+              <View style={styles.userSelectorLeft}>
+                <Ionicons name={viewingGroup ? 'people' : 'person'} size={16} color={T.color.accent} />
                 <Text style={styles.userSelectorLabel}>
-                  {viewingOther ? selectedName : 'Mis predicciones'}
+                  {viewingGroup ? `Predicciones · ${selectedGroup!.name}` : 'Mis predicciones'}
                 </Text>
-                {viewingOther && selectedGroup && (
-                  <Text style={styles.userSelectorGroup}>{selectedGroup}</Text>
-                )}
               </View>
-            </View>
-            <Ionicons name="chevron-down" size={16} color={T.color.ink3} />
-          </Pressable>
-        )}
-        {!viewingOther && (
-          <Pressable
-            style={[styles.userSelector, onlyEmpty && styles.userSelectorActive]}
-            onPress={() => setOnlyEmpty((v) => !v)}
-          >
-            <Ionicons
-              name={onlyEmpty ? 'filter' : 'filter-outline'}
-              size={14}
-              color={onlyEmpty ? T.color.accentInk : T.color.ink3}
-            />
-            <Text style={[styles.userSelectorLabel, onlyEmpty && { color: T.color.accentInk }]}>
-              Sin rellenar
-            </Text>
-          </Pressable>
-        )}
+              <Ionicons name="chevron-down" size={16} color={T.color.ink3} />
+            </Pressable>
+          )}
+          {!viewingGroup && (
+            <Pressable
+              style={[styles.userSelector, onlyEmpty && styles.userSelectorActive]}
+              onPress={() => setOnlyEmpty((v) => !v)}
+            >
+              <Ionicons name={onlyEmpty ? 'filter' : 'filter-outline'} size={14} color={onlyEmpty ? T.color.accentInk : T.color.ink3} />
+              <Text style={[styles.userSelectorLabel, onlyEmpty && { color: T.color.accentInk }]}>Sin rellenar</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Filtros de fase */}
         <View style={styles.filters}>
           {FILTERS.map((f) => (
-            <Pressable
-              key={f.key}
-              style={[styles.chip, filter === f.key && styles.chipActive]}
-              onPress={() => setFilter(f.key)}
-            >
+            <Pressable key={f.key} style={[styles.chip, filter === f.key && styles.chipActive]} onPress={() => setFilter(f.key)}>
               <Text style={[styles.chipText, filter === f.key && styles.chipTextActive]}>{f.label}</Text>
             </Pressable>
           ))}
         </View>
 
-        {/* Ordenación y filtro vacías */}
-        <View style={styles.filters}>
-          {filter === 'group' && (
-            <>
-              <Pressable
-                style={[styles.chip, sortMode === 'group' && styles.chipActive]}
-                onPress={() => setSortMode('group')}
-              >
-                <Text style={[styles.chipText, sortMode === 'group' && styles.chipTextActive]}>Por grupo</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.chip, sortMode === 'date' && styles.chipActive]}
-                onPress={() => setSortMode('date')}
-              >
-                <Text style={[styles.chipText, sortMode === 'date' && styles.chipTextActive]}>Por fecha</Text>
-              </Pressable>
-            </>
-          )}
-        </View>
+        {/* Ordenación */}
+        {filter === 'group' && (
+          <View style={styles.filters}>
+            <Pressable style={[styles.chip, sortMode === 'group' && styles.chipActive]} onPress={() => setSortMode('group')}>
+              <Text style={[styles.chipText, sortMode === 'group' && styles.chipTextActive]}>Por grupo</Text>
+            </Pressable>
+            <Pressable style={[styles.chip, sortMode === 'date' && styles.chipActive]} onPress={() => setSortMode('date')}>
+              <Text style={[styles.chipText, sortMode === 'date' && styles.chipTextActive]}>Por fecha</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
 
-      {loadingOther ? (
+      {viewingGroup && loadingGroupPreds ? (
         <ActivityIndicator color={T.color.accent} style={{ marginTop: 40 }} />
       ) : (
         <SectionList
@@ -203,19 +165,31 @@ export default function PrediccionesScreen() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{title}</Text>
               {filter === 'group' && (
-                <Text style={styles.sectionSub}>
-                  {GROUPS[title.replace('Grupo ', '')]?.teams.join(' · ')}
-                </Text>
+                <Text style={styles.sectionSub}>{GROUPS[title.replace('Grupo ', '')]?.teams.join(' · ')}</Text>
               )}
             </View>
           )}
           renderItem={({ item }) => (
-            <MatchCard
-              match={item}
-              prediction={activePred(item.id)}
-              onSave={viewingOther ? async () => {} : savePrediction}
-              readOnly={viewingOther}
-            />
+            viewingGroup ? (
+              <View style={styles.groupMatchWrap}>
+                <MatchCard match={item} prediction={undefined} onSave={async () => {}} readOnly />
+                <View style={styles.predsList}>
+                  {selectedGroup!.members.map((m) => {
+                    const p = byMatch[item.id]?.find((x) => x.userId === m.uid);
+                    return (
+                      <View key={m.uid} style={styles.predRow}>
+                        <Text style={styles.predName} numberOfLines={1}>{m.displayName}{m.uid === user?.uid ? ' (tú)' : ''}</Text>
+                        <Text style={[styles.predScore, !p && styles.predScoreEmpty]}>
+                          {p ? `${p.homeScore} – ${p.awayScore}` : 'Sin predecir'}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : (
+              <MatchCard match={item} prediction={getPrediction(item.id)} onSave={savePrediction} />
+            )
           )}
         />
       )}
@@ -225,43 +199,35 @@ export default function PrediccionesScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Ver predicciones de</Text>
+            <Text style={styles.modalTitle}>Ver predicciones</Text>
 
-            {/* Opción: yo */}
             <Pressable
-              style={[styles.memberRow, !viewingOther && styles.memberRowActive]}
-              onPress={() => { setSelectedUid(null); setModalVisible(false); }}
+              style={styles.optionRow}
+              onPress={() => { setSelectedGroupId(null); setModalVisible(false); }}
             >
-              <View style={[styles.memberAvatar, { backgroundColor: T.color.accent }]}>
-                <Text style={styles.memberAvatarText}>{(user?.displayName ?? '?').charAt(0).toUpperCase()}</Text>
-              </View>
-              <Text style={styles.memberName}>Mis predicciones</Text>
-              {!viewingOther && <Ionicons name="checkmark" size={18} color={T.color.accent} />}
+              <Ionicons name="person" size={20} color={T.color.accent} />
+              <Text style={styles.optionName}>Mis predicciones</Text>
+              {!viewingGroup && <Ionicons name="checkmark" size={18} color={T.color.accent} />}
             </Pressable>
 
             {loadingMembers ? (
               <ActivityIndicator color={T.color.accent} style={{ marginVertical: 20 }} />
             ) : (
               <FlatList
-                data={groupSections}
-                keyExtractor={(s) => s.groupId}
-                renderItem={({ item: section }) => (
-                  <View>
-                    <Text style={styles.groupHeader}>{section.groupName}</Text>
-                    {section.members.map((m) => (
-                      <Pressable
-                        key={m.uid}
-                        style={styles.memberRow}
-                        onPress={() => { setSelectedUid(m.uid); setModalVisible(false); }}
-                      >
-                        <View style={styles.memberAvatar}>
-                          <Text style={styles.memberAvatarText}>{m.displayName.charAt(0).toUpperCase()}</Text>
-                        </View>
-                        <Text style={styles.memberName}>{m.displayName}</Text>
-                        {selectedUid === m.uid && <Ionicons name="checkmark" size={18} color={T.color.accent} />}
-                      </Pressable>
-                    ))}
-                  </View>
+                data={groupInfos}
+                keyExtractor={(g) => g.id}
+                renderItem={({ item: g }) => (
+                  <Pressable
+                    style={styles.optionRow}
+                    onPress={() => { setSelectedGroupId(g.id); setModalVisible(false); }}
+                  >
+                    <Ionicons name="people" size={20} color={T.color.accent} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.optionName}>Predicciones · {g.name}</Text>
+                      <Text style={styles.optionSub}>{g.members.length} miembros</Text>
+                    </View>
+                    {selectedGroupId === g.id && <Ionicons name="checkmark" size={18} color={T.color.accent} />}
+                  </Pressable>
                 )}
               />
             )}
@@ -274,58 +240,40 @@ export default function PrediccionesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.color.bg },
-  header: {
-    paddingHorizontal: T.space.xl,
-    paddingTop: 56,
-    paddingBottom: T.space.lg,
-    gap: T.space.md,
-    backgroundColor: T.color.bg,
-  },
+  header: { paddingHorizontal: T.space.xl, paddingTop: 56, paddingBottom: T.space.lg, gap: T.space.md, backgroundColor: T.color.bg },
   title: { color: T.color.ink, fontSize: 27, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
 
-  // Selector usuario
-  userSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: T.color.surface,
-    borderRadius: T.radius.chip,
-    paddingHorizontal: T.space.md,
-    paddingVertical: T.space.sm,
-    borderWidth: 1,
-    borderColor: T.color.line,
-    alignSelf: 'flex-start',
-    gap: T.space.sm,
-  },
+  userSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: T.color.surface, borderRadius: T.radius.chip, paddingHorizontal: T.space.md, paddingVertical: T.space.sm, borderWidth: 1, borderColor: T.color.line, alignSelf: 'flex-start', gap: T.space.sm },
   userSelectorLeft: { flexDirection: 'row', alignItems: 'center', gap: T.space.sm },
-  avatarSmall:      { width: 24, height: 24, borderRadius: 12, backgroundColor: T.color.soft, alignItems: 'center', justifyContent: 'center' },
-  avatarSmallText:  { color: T.color.accent, fontSize: 12, fontFamily: 'SchibstedGrotesk_700Bold' },
-  selectorRow:      { flexDirection: 'row', gap: T.space.sm, flexWrap: 'wrap' },
+  selectorRow: { flexDirection: 'row', gap: T.space.sm, flexWrap: 'wrap' },
   userSelectorActive: { backgroundColor: T.color.accent, borderColor: T.color.accent },
-  userSelectorLabel:{ color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
-  userSelectorGroup:{ color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
+  userSelectorLabel: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
 
-  // Filtros
   filters: { flexDirection: 'row', gap: T.space.sm },
-  chip:       { paddingHorizontal: T.space.md, paddingVertical: T.space.xs, borderRadius: T.radius.chip, borderWidth: 1, borderColor: T.color.line },
+  chip: { paddingHorizontal: T.space.md, paddingVertical: T.space.xs, borderRadius: T.radius.chip, borderWidth: 1, borderColor: T.color.line },
   chipActive: { backgroundColor: T.color.accent, borderColor: T.color.accent },
-  chipText:       { color: T.color.ink2, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
+  chipText: { color: T.color.ink2, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
   chipTextActive: { color: '#fff' },
 
   list: { paddingHorizontal: T.space.lg, paddingBottom: 32 },
   sectionHeader: { marginTop: T.space.xl, marginBottom: T.space.sm, gap: 2 },
-  sectionTitle:  { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
-  sectionSub:    { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
+  sectionTitle: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
+  sectionSub: { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
+
+  // Predicciones de grupo bajo cada partido
+  groupMatchWrap: { marginBottom: T.space.sm },
+  predsList: { backgroundColor: T.color.surface, borderRadius: T.radius.card, borderWidth: 1, borderColor: T.color.line, borderTopWidth: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0, marginTop: -8, paddingHorizontal: T.space.md, paddingBottom: T.space.sm, paddingTop: T.space.sm },
+  predRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 5, borderTopWidth: 1, borderTopColor: T.color.line },
+  predName: { flex: 1, color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium' },
+  predScore: { color: T.color.accent, fontSize: 13, fontFamily: 'SchibstedGrotesk_700Bold' },
+  predScoreEmpty: { color: T.color.ink3, fontFamily: 'HankenGrotesk_400Regular', fontStyle: 'italic' },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalSheet:   { backgroundColor: T.color.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: T.space.xl, paddingTop: T.space.md, paddingBottom: 40, maxHeight: '75%' },
-  modalHandle:  { width: 40, height: 4, borderRadius: 2, backgroundColor: T.color.line, alignSelf: 'center', marginBottom: T.space.lg },
-  modalTitle:   { color: T.color.ink, fontSize: 17, fontFamily: 'SchibstedGrotesk_700Bold', marginBottom: T.space.sm },
-  memberRow:    { flexDirection: 'row', alignItems: 'center', gap: T.space.md, paddingVertical: T.space.sm, borderRadius: 12 },
-  memberRowActive: { },
-  memberAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: T.color.line, alignItems: 'center', justifyContent: 'center' },
-  memberAvatarText: { color: T.color.ink, fontSize: 17, fontFamily: 'SchibstedGrotesk_700Bold' },
-  groupHeader:  { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.8, paddingVertical: T.space.sm, borderBottomWidth: 1, borderBottomColor: T.color.line, marginBottom: 4 },
-  memberName:   { flex: 1, color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
+  modalSheet: { backgroundColor: T.color.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: T.space.xl, paddingTop: T.space.md, paddingBottom: 40, maxHeight: '75%' },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: T.color.line, alignSelf: 'center', marginBottom: T.space.lg },
+  modalTitle: { color: T.color.ink, fontSize: 17, fontFamily: 'SchibstedGrotesk_700Bold', marginBottom: T.space.sm },
+  optionRow: { flexDirection: 'row', alignItems: 'center', gap: T.space.md, paddingVertical: T.space.md, borderBottomWidth: 1, borderBottomColor: T.color.line },
+  optionName: { flex: 1, color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
+  optionSub: { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular' },
 });
