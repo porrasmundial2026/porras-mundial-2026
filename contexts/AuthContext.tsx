@@ -35,29 +35,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Comprobar si el usuario está baneado
-        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (snap.exists() && (snap.data() as any).banned) {
-          await signOut(auth);
+      try {
+        if (firebaseUser) {
+          // Comprobar si el usuario está baneado
+          const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (snap.exists() && (snap.data() as any).banned) {
+            await signOut(auth);
+            setUser(null);
+            setProfile(null);
+            return;
+          }
+          await ensureUserProfile(firebaseUser);
+          setUser(firebaseUser);
+          setProfile({
+            uid: firebaseUser.uid,
+            displayName: firebaseUser.displayName ?? 'Usuario',
+            email: firebaseUser.email ?? '',
+            photoURL: firebaseUser.photoURL,
+          });
+        } else {
           setUser(null);
           setProfile(null);
-          setLoading(false);
-          return;
         }
-        await ensureUserProfile(firebaseUser);
-        setUser(firebaseUser);
-        setProfile({
-          uid: firebaseUser.uid,
-          displayName: firebaseUser.displayName ?? 'Usuario',
-          email: firebaseUser.email ?? '',
-          photoURL: firebaseUser.photoURL,
-        });
-      } else {
-        setUser(null);
-        setProfile(null);
+      } catch (e) {
+        // Si algo falla (red, permisos), no dejamos la app colgada en loading.
+        // Mantenemos al usuario autenticado si Firebase ya lo reconoció.
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          setProfile({
+            uid: firebaseUser.uid,
+            displayName: firebaseUser.displayName ?? 'Usuario',
+            email: firebaseUser.email ?? '',
+            photoURL: firebaseUser.photoURL,
+          });
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsubscribe;
   }, []);
