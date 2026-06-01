@@ -86,8 +86,12 @@ export default function GrupoDetailScreen() {
   async function shareCode() {
     if (!group) return;
     const link = `https://porrasmundial2026.github.io/porras-mundial-2026/join.html?code=${group.code}`;
+    const appLink = 'https://play.google.com/store/apps/details?id=com.porrasmundial.app';
     await Share.share({
-      message: `¡Únete a mi grupo "${group.name}" en Porras Mundial 2026! 🏆\n\nCódigo: ${group.code}\n\n${link}`,
+      message:
+        `¡Únete a mi grupo "${group.name}" en Porras Mundial 2026! 🏆\n\n` +
+        `Código: ${group.code}\n${link}\n\n` +
+        `¿No tienes la app? Instálala aquí:\n${appLink}`,
     });
   }
 
