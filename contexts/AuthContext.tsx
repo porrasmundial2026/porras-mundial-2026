@@ -8,8 +8,9 @@ import {
   GoogleAuthProvider,
   signOut,
   updateProfile,
+  deleteUser,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, writeBatch, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { UserProfile } from '../types';
 
@@ -22,6 +23,7 @@ interface AuthContextValue {
   signInWithGoogle: (idToken: string) => Promise<void>;
   logOut: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -112,8 +114,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile((prev) => prev ? { ...prev, displayName: name } : null);
   }
 
+  async function deleteAccount() {
+    const current = auth.currentUser;
+    if (!current) throw new Error('No autenticado');
+    const uid = current.uid;
+
+    // Borrar datos del usuario en Firestore
+    const batch = writeBatch(db);
+    const predsSnap = await getDocs(query(collection(db, 'predictions'), where('userId', '==', uid)));
+    predsSnap.docs.forEach((d) => batch.delete(d.ref));
+    const groupsSnap = await getDocs(query(collection(db, 'groups'), where('members', 'array-contains', uid)));
+    groupsSnap.docs.forEach((d) => batch.update(d.ref, { members: arrayRemove(uid) }));
+    batch.delete(doc(db, 'users', uid));
+    await batch.commit();
+
+    // Borrar la cuenta de Firebase Auth (requiere sesión reciente)
+    await deleteUser(current);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signInWithGoogle, logOut, updateDisplayName }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signInWithGoogle, logOut, updateDisplayName, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

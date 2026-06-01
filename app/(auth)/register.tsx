@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, Pressable, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+const PRIVACY_URL = 'https://porrasmundial2026.github.io/porras-mundial-2026/privacy.html';
 
 const logo = require('../../assets/portada-logo.png');
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,6 +29,7 @@ export default function RegisterScreen() {
   const [emailFocus, setEmailFocus]       = useState(false);
   const [passwordFocus, setPasswordFocus] = useState(false);
   const [codeFocus, setCodeFocus]         = useState(false);
+  const [accepted, setAccepted]           = useState(false);
 
   async function handleRegister() {
     if (!displayName.trim() || !email || !password) {
@@ -36,6 +40,9 @@ export default function RegisterScreen() {
     }
     if (groupCode && groupCode.trim().length !== 6) {
       setError('El código de grupo debe tener 6 caracteres (o déjalo vacío)'); return;
+    }
+    if (!accepted) {
+      setError('Debes aceptar la política de privacidad'); return;
     }
     setError(''); setLoading(true);
     try {
@@ -118,6 +125,19 @@ export default function RegisterScreen() {
           </View>
           <Text style={styles.codeHint}>Si tienes un código, te unimos al grupo al registrarte.</Text>
 
+          {/* Aceptación política de privacidad (RGPD) */}
+          <Pressable style={styles.checkRow} onPress={() => setAccepted((v) => !v)}>
+            <View style={[styles.checkbox, accepted && styles.checkboxOn]}>
+              {accepted && <Ionicons name="checkmark" size={14} color="#fff" />}
+            </View>
+            <Text style={styles.checkText}>
+              He leído y acepto la{' '}
+              <Text style={styles.checkLink} onPress={() => Linking.openURL(PRIVACY_URL)}>
+                política de privacidad
+              </Text>
+            </Text>
+          </Pressable>
+
           {error  ? <Text style={styles.error}>{error}</Text>   : null}
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
@@ -176,6 +196,11 @@ const styles = StyleSheet.create({
   codeWrap:   { position: 'relative' },
   codeInput:  { letterSpacing: 4, fontFamily: 'SchibstedGrotesk_700Bold' },
   codeHint:   { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_400Regular', marginTop: -4 },
+  checkRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
+  checkbox:   { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: T.color.line, alignItems: 'center', justifyContent: 'center' },
+  checkboxOn: { backgroundColor: T.color.accent, borderColor: T.color.accent },
+  checkText:  { flex: 1, color: T.color.ink2, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium', lineHeight: 19 },
+  checkLink:  { color: T.color.accent, fontFamily: 'HankenGrotesk_700Bold' },
   error:      { color: T.color.danger, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center' },
   notice:     { color: '#d97706', fontSize: 13, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', lineHeight: 18 },
 

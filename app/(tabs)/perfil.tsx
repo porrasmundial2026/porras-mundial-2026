@@ -9,7 +9,7 @@ import { isAdmin } from '../../constants/admin';
 import { T } from '../../constants/theme';
 
 export default function PerfilScreen() {
-  const { user, profile, logOut, updateDisplayName } = useAuth();
+  const { user, profile, logOut, updateDisplayName, deleteAccount } = useAuth();
   const { predictions } = usePredictions();
   const liveMatches = useMatchResults();
   const admin = isAdmin(user?.uid);
@@ -61,6 +61,30 @@ export default function PerfilScreen() {
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Salir', style: 'destructive', onPress: async () => { await logOut(); router.replace('/(auth)/login'); } },
     ]);
+  }
+
+  async function handleDeleteAccount() {
+    Alert.alert(
+      'Eliminar cuenta',
+      'Se borrarán permanentemente tu cuenta, tus predicciones y se te quitará de todos los grupos. Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar', style: 'destructive', onPress: async () => {
+            try {
+              await deleteAccount();
+              router.replace('/(auth)/login');
+            } catch (e: any) {
+              if (e?.code === 'auth/requires-recent-login') {
+                Alert.alert('Vuelve a iniciar sesión', 'Por seguridad, cierra sesión y vuelve a entrar antes de eliminar tu cuenta.');
+              } else {
+                Alert.alert('Error', 'No se pudo eliminar la cuenta');
+              }
+            }
+          },
+        },
+      ]
+    );
   }
 
   const initial = (profile?.displayName ?? '?').charAt(0).toUpperCase();
@@ -166,6 +190,10 @@ export default function PerfilScreen() {
       <Pressable style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutText}>Cerrar sesión</Text>
       </Pressable>
+
+      <Pressable onPress={handleDeleteAccount} style={styles.deleteAccountBtn}>
+        <Text style={styles.deleteAccountText}>Eliminar mi cuenta</Text>
+      </Pressable>
     </ScrollView>
     </View>
   );
@@ -212,4 +240,6 @@ const styles = StyleSheet.create({
   adminText: { color: T.color.accent, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   logoutBtn: { margin: T.space.lg, backgroundColor: T.color.surface, borderRadius: T.radius.card, paddingVertical: 15, alignItems: 'center', borderWidth: 1, borderColor: '#FCA5A5' },
   logoutText:{ color: T.color.danger, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
+  deleteAccountBtn:  { alignItems: 'center', paddingVertical: 8, marginBottom: 16 },
+  deleteAccountText: { color: T.color.ink3, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium', textDecorationLine: 'underline' },
 });
