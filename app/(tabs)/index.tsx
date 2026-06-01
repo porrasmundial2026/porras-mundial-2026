@@ -13,6 +13,7 @@ import { useMatchResults } from '../../hooks/useMatchResults';
 import { useGroups } from '../../hooks/useGroup';
 import { useAuth } from '../../contexts/AuthContext';
 import { PHASE_LABELS, GROUPS } from '../../constants/matches';
+import { calculatePoints } from '../../lib/scoring';
 import { Match, UserProfile } from '../../types';
 import { T } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -174,17 +175,32 @@ export default function PrediccionesScreen() {
               <View style={styles.groupMatchWrap}>
                 <MatchCard match={item} prediction={undefined} onSave={async () => {}} readOnly />
                 <View style={styles.predsList}>
-                  {selectedGroup!.members.map((m) => {
-                    const p = byMatch[item.id]?.find((x) => x.userId === m.uid);
-                    return (
+                  {(() => {
+                    const isFinished = item.status === 'finished' && item.homeScore !== undefined && item.awayScore !== undefined;
+                    // Ordenar por puntos cuando el partido ha terminado
+                    const rows = selectedGroup!.members.map((m) => {
+                      const p = byMatch[item.id]?.find((x) => x.userId === m.uid);
+                      const pts = isFinished && p ? calculatePoints(p, item as any) : null;
+                      return { m, p, pts };
+                    });
+                    if (isFinished) rows.sort((a, b) => (b.pts ?? -1) - (a.pts ?? -1));
+                    return rows.map(({ m, p, pts }) => (
                       <View key={m.uid} style={styles.predRow}>
                         <Text style={styles.predName} numberOfLines={1}>{m.displayName}{m.uid === user?.uid ? ' (tú)' : ''}</Text>
                         <Text style={[styles.predScore, !p && styles.predScoreEmpty]}>
                           {p ? `${p.homeScore} – ${p.awayScore}` : 'Sin predecir'}
                         </Text>
+                        {isFinished && p && (
+                          <View style={[
+                            styles.ptsBadge,
+                            pts === 5 ? styles.pts5 : pts === 2 ? styles.pts2 : styles.pts0,
+                          ]}>
+                            <Text style={styles.ptsBadgeText}>+{pts}</Text>
+                          </View>
+                        )}
                       </View>
-                    );
-                  })}
+                    ));
+                  })()}
                 </View>
               </View>
             ) : (
@@ -267,6 +283,11 @@ const styles = StyleSheet.create({
   predName: { flex: 1, color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium' },
   predScore: { color: T.color.accent, fontSize: 13, fontFamily: 'SchibstedGrotesk_700Bold' },
   predScoreEmpty: { color: T.color.ink3, fontFamily: 'HankenGrotesk_400Regular', fontStyle: 'italic' },
+  ptsBadge: { marginLeft: T.space.sm, borderRadius: T.radius.chip, paddingHorizontal: 7, paddingVertical: 2, minWidth: 30, alignItems: 'center' },
+  ptsBadgeText: { color: '#fff', fontSize: 11, fontFamily: 'HankenGrotesk_700Bold' },
+  pts5: { backgroundColor: '#16a34a' },
+  pts2: { backgroundColor: '#d97706' },
+  pts0: { backgroundColor: '#dc2626' },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
