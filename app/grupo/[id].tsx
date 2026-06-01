@@ -91,7 +91,8 @@ export default function GrupoDetailScreen() {
       message:
         `¡Únete a mi grupo "${group.name}" en Porras Mundial 2026! 🏆\n\n` +
         `Código: ${group.code}\n${link}\n\n` +
-        `¿No tienes la app? Únete a la prueba e instálala aquí:\n${appLink}`,
+        `¿No tienes la app? Únete a la prueba e instálala aquí:\n${appLink}\n\n` +
+        `Si no te aparece la opción de instalar la app, mándame un correo a pein2001@gmail.com o avísame por WhatsApp para añadirte a la lista de autorizados.`,
     });
   }
 
