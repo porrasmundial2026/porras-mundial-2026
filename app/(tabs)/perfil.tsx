@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { router } from 'expo-router';
+import { confirmAction, notify } from '../../lib/confirm';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePredictions } from '../../hooks/usePredictions';
 import { useMatchResults } from '../../hooks/useMatchResults';
@@ -56,34 +57,30 @@ export default function PerfilScreen() {
     }
   }
 
-  async function handleLogout() {
-    Alert.alert('Cerrar sesión', '¿Estás seguro?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Salir', style: 'destructive', onPress: async () => { await logOut(); router.replace('/(auth)/login'); } },
-    ]);
+  function handleLogout() {
+    confirmAction('Cerrar sesión', '¿Estás seguro?', async () => {
+      await logOut();
+      router.replace('/(auth)/login');
+    }, 'Salir', true);
   }
 
-  async function handleDeleteAccount() {
-    Alert.alert(
+  function handleDeleteAccount() {
+    confirmAction(
       'Eliminar cuenta',
       'Se borrarán permanentemente tu cuenta, tus predicciones y se te quitará de todos los grupos. Esta acción no se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar', style: 'destructive', onPress: async () => {
-            try {
-              await deleteAccount();
-              router.replace('/(auth)/login');
-            } catch (e: any) {
-              if (e?.code === 'auth/requires-recent-login') {
-                Alert.alert('Vuelve a iniciar sesión', 'Por seguridad, cierra sesión y vuelve a entrar antes de eliminar tu cuenta.');
-              } else {
-                Alert.alert('Error', 'No se pudo eliminar la cuenta');
-              }
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await deleteAccount();
+          router.replace('/(auth)/login');
+        } catch (e: any) {
+          if (e?.code === 'auth/requires-recent-login') {
+            notify('Vuelve a iniciar sesión', 'Por seguridad, cierra sesión y vuelve a entrar antes de eliminar tu cuenta.');
+          } else {
+            notify('Error', 'No se pudo eliminar la cuenta');
+          }
+        }
+      },
+      'Eliminar', true,
     );
   }
 

@@ -40,7 +40,7 @@ class ErrorBoundary extends React.Component<
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SchibstedGrotesk_700Bold,
     SchibstedGrotesk_800ExtraBold,
     HankenGrotesk_400Regular,
@@ -48,7 +48,9 @@ export default function RootLayout() {
     HankenGrotesk_700Bold,
   });
 
-  if (!fontsLoaded) return null;
+  // Arrancar aunque las fuentes fallen (en web a veces no decodifican);
+  // se usaría la fuente del sistema como respaldo.
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <ErrorBoundary>
