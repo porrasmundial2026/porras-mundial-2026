@@ -15,23 +15,36 @@ interface MatchResult {
   scheduledAt?: string; // hora de inicio real (ISO) desde la API
 }
 
+/** Clave de emparejamiento independiente del orden local/visitante. */
+export function pairKey(a: string, b: string): string {
+  return [a, b].sort().join('__').replace(/\s/g, '_');
+}
+
 /**
- * Aplica los resultados (de Firestore) a los partidos, emparejando por
- * nombre de equipo. Solo encajan los partidos cuyos equipos ya se conocen.
+ * Aplica los resultados (de Firestore) a los partidos. El emparejamiento es
+ * independiente del orden local/visitante; si el resultado viene invertido
+ * respecto a nuestro partido, se gira el marcador.
  */
 function applyResults(matches: Match[], resultMap: Map<string, MatchResult>): Match[] {
   return matches.map((m) => {
     if (m.homeTeam === 'Por definir' || m.awayTeam === 'Por definir') return m;
-    const key = `${m.homeTeam}__${m.awayTeam}`.replace(/\s/g, '_');
-    const r = resultMap.get(key);
+    const r = resultMap.get(pairKey(m.homeTeam, m.awayTeam));
     if (!r) return m;
+
+    // ¿El resultado viene en el mismo orden que nuestro partido?
+    const sameOrder = r.homeTeam === m.homeTeam;
+
+    const rHome = sameOrder ? r.homeScore : r.awayScore;
+    const rAway = sameOrder ? r.awayScore : r.homeScore;
+    let penaltyWinner = r.penaltyWinner;
+    if (penaltyWinner && !sameOrder) penaltyWinner = penaltyWinner === 'home' ? 'away' : 'home';
+
     return {
       ...m,
-      // Solo sobrescribimos lo que venga definido (un doc puede tener solo la hora)
       status: r.status ?? m.status,
-      homeScore: r.homeScore ?? m.homeScore,
-      awayScore: r.awayScore ?? m.awayScore,
-      penaltyWinner: r.penaltyWinner ?? m.penaltyWinner,
+      homeScore: rHome ?? m.homeScore,
+      awayScore: rAway ?? m.awayScore,
+      penaltyWinner: penaltyWinner ?? m.penaltyWinner,
       scheduledAt: r.scheduledAt ? new Date(r.scheduledAt) : m.scheduledAt,
     };
   });
@@ -53,8 +66,7 @@ export function useMatchResults(): Match[] {
       const resultMap = new Map<string, MatchResult>();
       snap.docs.forEach((doc) => {
         const d = doc.data() as MatchResult;
-        const key = `${d.homeTeam}__${d.awayTeam}`.replace(/\s/g, '_');
-        resultMap.set(key, d);
+        resultMap.set(pairKey(d.homeTeam, d.awayTeam), d);
       });
 
       let current = ALL_MATCHES;

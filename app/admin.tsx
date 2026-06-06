@@ -397,7 +397,7 @@ function AdminMatchRow({ match }: { match: Match }) {
   const needsPenalty = isKnockout && isDraw;
   const canFinish = valid && (!needsPenalty || penaltyWinner != null);
 
-  const docId = `${match.homeTeam}__${match.awayTeam}`.replace(/\s/g, '_');
+  const docId = [match.homeTeam, match.awayTeam].sort().join('__').replace(/\s/g, '_');
 
   async function save(status: 'finished' | 'live') {
     if (!valid) return;

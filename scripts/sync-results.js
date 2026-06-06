@@ -25,6 +25,11 @@ function mapTeam(name) {
   return TEAM_MAP[name] ?? name;
 }
 
+// Clave canónica independiente del orden local/visitante
+function pairKey(a, b) {
+  return [a, b].sort().join('__').replace(/\s/g, '_');
+}
+
 function apiStatusToOurs(status) {
   if (status === 'FINISHED') return 'finished';
   if (status === 'IN_PLAY' || status === 'PAUSED' || status === 'HALFTIME') return 'live';
@@ -87,8 +92,7 @@ async function sync() {
     const homeScore = match.score?.fullTime?.home ?? match.score?.halfTime?.home ?? null;
     const awayScore = match.score?.fullTime?.away ?? match.score?.halfTime?.away ?? null;
 
-    const docId = `${homeTeam}__${awayTeam}`.replace(/\s/g, '_');
-    const ref = db.collection('matchResults').doc(docId);
+    const ref = db.collection('matchResults').doc(pairKey(homeTeam, awayTeam));
 
     batch.set(ref, {
       homeTeam,
@@ -112,8 +116,7 @@ async function sync() {
     if (!match.homeTeam?.name || !match.awayTeam?.name || !match.utcDate) continue;
     const homeTeam = mapTeam(match.homeTeam.name);
     const awayTeam = mapTeam(match.awayTeam.name);
-    const docId = `${homeTeam}__${awayTeam}`.replace(/\s/g, '_');
-    timeBatch.set(db.collection('matchResults').doc(docId), {
+    timeBatch.set(db.collection('matchResults').doc(pairKey(homeTeam, awayTeam)), {
       homeTeam,
       awayTeam,
       scheduledAt: match.utcDate, // ISO string con la hora real
