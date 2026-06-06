@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, SectionList, FlatList, StyleSheet, Pressable } from 'react-native';
+import { View, Text, SectionList, FlatList, StyleSheet, Pressable, Modal } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { PHASE_LABELS, GROUPS } from '../../constants/matches';
 import { useMatchResults } from '../../hooks/useMatchResults';
 import { Flag } from '../../components/Flag';
@@ -8,6 +9,9 @@ import { T } from '../../constants/theme';
 import { computeAllStandings } from '../../lib/standings';
 import { GroupStandingTable } from '../../components/GroupStandingTable';
 import { BracketView } from '../../components/BracketView';
+
+// Lista de los 48 equipos, ordenada alfabéticamente
+const ALL_TEAMS = Object.values(GROUPS).flatMap((g) => g.teams).sort((a, b) => a.localeCompare(b));
 
 type ViewMode = 'matches' | 'standings' | 'bracket';
 type Filter   = 'finished' | 'upcoming' | 'all';
@@ -27,9 +31,12 @@ export default function ResultadosScreen() {
   const liveMatches = useMatchResults();
   const [view,   setView]   = useState<ViewMode>('matches');
   const [filter, setFilter] = useState<Filter>('upcoming');
+  const [country, setCountry] = useState<string | null>(null);
+  const [countryModal, setCountryModal] = useState(false);
 
   const sections = useMemo(() => {
     const filtered = liveMatches.filter((m) => {
+      if (country && m.homeTeam !== country && m.awayTeam !== country) return false;
       if (filter === 'finished') return m.status === 'finished';
       if (filter === 'upcoming') return m.status === 'upcoming' || m.status === 'live';
       return true;
@@ -41,7 +48,7 @@ export default function ResultadosScreen() {
       byPhase.get(key)!.push(match);
     }
     return Array.from(byPhase.entries()).map(([title, data]) => ({ title, data }));
-  }, [filter, liveMatches]);
+  }, [filter, country, liveMatches]);
 
   const standings    = useMemo(() => computeAllStandings(liveMatches), [liveMatches]);
   const groupLetters = Object.keys(GROUPS);
@@ -60,13 +67,24 @@ export default function ResultadosScreen() {
         </View>
 
         {view === 'matches' && (
-          <View style={styles.filters}>
-            {FILTERS.map((f) => (
-              <Pressable key={f.key} style={[styles.chip, filter === f.key && styles.chipActive]} onPress={() => setFilter(f.key)}>
-                <Text style={[styles.chipText, filter === f.key && styles.chipTextActive]}>{f.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <>
+            <View style={styles.filters}>
+              {FILTERS.map((f) => (
+                <Pressable key={f.key} style={[styles.chip, filter === f.key && styles.chipActive]} onPress={() => setFilter(f.key)}>
+                  <Text style={[styles.chipText, filter === f.key && styles.chipTextActive]}>{f.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Filtro por país */}
+            <Pressable style={styles.countryBtn} onPress={() => setCountryModal(true)}>
+              {country ? <Flag team={country} size={20} /> : <Ionicons name="earth" size={18} color={T.color.accent} />}
+              <Text style={styles.countryBtnText}>{country ?? 'Todos los países'}</Text>
+              {country
+                ? <Pressable onPress={() => setCountry(null)} hitSlop={8}><Ionicons name="close-circle" size={18} color={T.color.ink3} /></Pressable>
+                : <Ionicons name="chevron-down" size={16} color={T.color.ink3} />}
+            </Pressable>
+          </>
         )}
       </View>
 
@@ -107,6 +125,38 @@ export default function ResultadosScreen() {
           )}
         />
       )}
+
+      {/* Modal de selección de país */}
+      <Modal visible={countryModal} transparent animationType="slide" onRequestClose={() => setCountryModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setCountryModal(false)}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Filtrar por país</Text>
+            <FlatList
+              data={['__all__', ...ALL_TEAMS]}
+              keyExtractor={(t) => t}
+              renderItem={({ item }) => {
+                if (item === '__all__') {
+                  return (
+                    <Pressable style={styles.countryRow} onPress={() => { setCountry(null); setCountryModal(false); }}>
+                      <Ionicons name="earth" size={24} color={T.color.accent} />
+                      <Text style={styles.countryRowText}>Todos los países</Text>
+                      {!country && <Ionicons name="checkmark" size={18} color={T.color.accent} />}
+                    </Pressable>
+                  );
+                }
+                return (
+                  <Pressable style={styles.countryRow} onPress={() => { setCountry(item); setCountryModal(false); }}>
+                    <Flag team={item} size={24} />
+                    <Text style={styles.countryRowText}>{item}</Text>
+                    {country === item && <Ionicons name="checkmark" size={18} color={T.color.accent} />}
+                  </Pressable>
+                );
+              }}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -162,6 +212,14 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: T.color.accent, borderColor: T.color.accent },
   chipText:       { color: T.color.ink2, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
   chipTextActive: { color: '#fff' },
+  countryBtn:     { flexDirection: 'row', alignItems: 'center', gap: T.space.sm, backgroundColor: T.color.surface, borderRadius: T.radius.chip, paddingHorizontal: T.space.md, paddingVertical: T.space.sm, borderWidth: 1, borderColor: T.color.line, alignSelf: 'flex-start' },
+  countryBtnText: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
+  modalOverlay:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalSheet:     { backgroundColor: T.color.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: T.space.xl, paddingTop: T.space.md, paddingBottom: 40, maxHeight: '75%' },
+  modalHandle:    { width: 40, height: 4, borderRadius: 2, backgroundColor: T.color.line, alignSelf: 'center', marginBottom: T.space.lg },
+  modalTitle:     { color: T.color.ink, fontSize: 17, fontFamily: 'SchibstedGrotesk_700Bold', marginBottom: T.space.sm },
+  countryRow:     { flexDirection: 'row', alignItems: 'center', gap: T.space.md, paddingVertical: T.space.sm, borderBottomWidth: 1, borderBottomColor: T.color.line },
+  countryRowText: { flex: 1, color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   list:         { paddingHorizontal: T.space.lg, paddingBottom: 32 },
   sectionTitle: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.8, marginTop: T.space.xl, marginBottom: T.space.sm },
   legend:     { flexDirection: 'row', gap: 16, paddingVertical: 8, paddingHorizontal: 4 },
