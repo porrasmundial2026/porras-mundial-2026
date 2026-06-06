@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../contexts/AuthContext';
 import { OfflineBanner } from '../components/OfflineBanner';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { T } from '../constants/theme';
 import {
   useFonts,
@@ -75,5 +75,12 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.color.bg },
+  root: {
+    flex: 1,
+    backgroundColor: T.color.bg,
+    // En web: columna centrada tipo móvil, no a pantalla completa
+    ...(Platform.OS === 'web'
+      ? ({ width: '80%', maxWidth: 520, alignSelf: 'center', borderLeftWidth: 1, borderRightWidth: 1, borderColor: T.color.line } as object)
+      : {}),
+  },
 });
