@@ -9,22 +9,28 @@ import { T } from '../../constants/theme';
 
 const logo = require('../../assets/portada-logo.png');
 
-// Google Sign-In es un módulo nativo: no existe en Expo Go.
-// Lo cargamos de forma tolerante para no romper el desarrollo en Expo Go.
+const isWeb = Platform.OS === 'web';
+
+// Google Sign-In nativo: solo en móvil (no existe en web ni en Expo Go).
 let GoogleSignin: any = null;
 let statusCodes: any = {};
-let googleAvailable = false;
-try {
-  const gs = require('@react-native-google-signin/google-signin');
-  GoogleSignin = gs.GoogleSignin;
-  statusCodes = gs.statusCodes;
-  googleAvailable = !!GoogleSignin?.configure;
-} catch {
-  googleAvailable = false;
+let nativeGoogleAvailable = false;
+if (!isWeb) {
+  try {
+    const gs = require('@react-native-google-signin/google-signin');
+    GoogleSignin = gs.GoogleSignin;
+    statusCodes = gs.statusCodes;
+    nativeGoogleAvailable = !!GoogleSignin?.configure;
+  } catch {
+    nativeGoogleAvailable = false;
+  }
 }
 
+// El botón de Google se muestra si: estamos en web (popup) o el SDK nativo está disponible
+const showGoogleButton = isWeb || nativeGoogleAvailable;
+
 export default function LoginScreen() {
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, signInWithGoogleWeb } = useAuth();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -40,7 +46,7 @@ export default function LoginScreen() {
   }, []);
 
   useEffect(() => {
-    if (googleAvailable) {
+    if (nativeGoogleAvailable) {
       GoogleSignin.configure({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
       });
@@ -48,20 +54,23 @@ export default function LoginScreen() {
   }, []);
 
   async function handleGoogleLogin() {
-    if (!googleAvailable) {
-      setError('El login con Google solo funciona en la app instalada, no en Expo Go.');
-      return;
-    }
     setError(''); setLoading(true);
     try {
-      await GoogleSignin.hasPlayServices();
-      const result = await GoogleSignin.signIn();
-      const idToken = (result as any).data?.idToken ?? (result as any).idToken;
-      if (!idToken) throw new Error('No se obtuvo el token de Google');
-      await signInWithGoogle(idToken);
-      router.replace('/(tabs)');
+      if (isWeb) {
+        // Web: popup de Firebase
+        await signInWithGoogleWeb();
+        router.replace('/(tabs)');
+      } else {
+        // Móvil: SDK nativo
+        await GoogleSignin.hasPlayServices();
+        const result = await GoogleSignin.signIn();
+        const idToken = (result as any).data?.idToken ?? (result as any).idToken;
+        if (!idToken) throw new Error('No se obtuvo el token de Google');
+        await signInWithGoogle(idToken);
+        router.replace('/(tabs)');
+      }
     } catch (e: any) {
-      if (e?.code === statusCodes.SIGN_IN_CANCELLED) {
+      if (e?.code === statusCodes.SIGN_IN_CANCELLED || e?.code === 'auth/popup-closed-by-user') {
         // usuario canceló, no mostrar error
       } else {
         setError(e instanceof Error ? e.message : 'Error con Google');
@@ -131,7 +140,7 @@ export default function LoginScreen() {
               : <Text style={styles.btnText}>Entrar</Text>}
           </Pressable>
 
-          {googleAvailable && (
+          {showGoogleButton && (
             <>
               {/* Separador */}
               <View style={styles.divider}>

@@ -21,6 +21,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
+  signInWithGoogleWeb: () => Promise<void>;
   logOut: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -112,6 +113,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await ensureUserProfile(googleUser);
   }
 
+  // Login con Google en navegador (web) mediante popup de Firebase
+  async function signInWithGoogleWeb() {
+    const { signInWithPopup } = await import('firebase/auth');
+    const provider = new GoogleAuthProvider();
+    const { user: googleUser } = await signInWithPopup(auth, provider);
+    await ensureUserProfile(googleUser);
+  }
+
   async function logOut() {
     await signOut(auth);
   }
@@ -142,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signInWithGoogle, logOut, updateDisplayName, deleteAccount }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signInWithGoogle, signInWithGoogleWeb, logOut, updateDisplayName, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );
