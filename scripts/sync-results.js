@@ -21,7 +21,9 @@ const db = admin.firestore();
 const API_URL = 'https://api.football-data.org/v4/competitions/WC/matches?season=2026';
 const API_TOKEN = process.env.FOOTBALL_API_TOKEN;
 
+const unmappedTeams = new Set();
 function mapTeam(name) {
+  if (!(name in TEAM_MAP)) unmappedTeams.add(name);
   return TEAM_MAP[name] ?? name;
 }
 
@@ -126,6 +128,12 @@ async function sync() {
   await timeBatch.commit();
   console.log(`Horas de inicio guardadas: ${timeCount}`);
 
+  if (unmappedTeams.size > 0) {
+    console.log('⚠️ EQUIPOS SIN MAPEAR (revisar teamMap.js):', JSON.stringify([...unmappedTeams]));
+  } else {
+    console.log('✓ Todos los equipos mapeados correctamente');
+  }
+
   // Recalcular puntos de predicciones para partidos finalizados
   const finished = active.filter((m) => m.status === 'FINISHED');
   for (const match of finished) {
@@ -133,8 +141,7 @@ async function sync() {
     const awayTeam = mapTeam(match.awayTeam.name);
     const homeScore = match.score?.fullTime?.home ?? null;
     const awayScore = match.score?.fullTime?.away ?? null;
-    const docKey = `${homeTeam}__${awayTeam}`.replace(/\s/g, '_');
-    const matchId = MATCH_ID_MAP[docKey];
+    const matchId = MATCH_ID_MAP[pairKey(homeTeam, awayTeam)];
     await updatePredictionPoints(matchId, homeScore, awayScore);
   }
 

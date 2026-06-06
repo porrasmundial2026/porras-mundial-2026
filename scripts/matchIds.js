@@ -22,10 +22,14 @@ const PAIRS = [[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
 
 const MATCH_ID_MAP = {};
 
+// Clave canónica (equipos ordenados) independiente del orden local/visitante
+function pairKey(a, b) {
+  return [a, b].sort().join('__').replace(/\s/g, '_');
+}
+
 Object.entries(GROUPS).forEach(([letter, teams]) => {
   PAIRS.forEach(([hi, ai], idx) => {
-    const key = `${teams[hi]}__${teams[ai]}`.replace(/\s/g, '_');
-    MATCH_ID_MAP[key] = `group-${letter}-${idx + 1}`;
+    MATCH_ID_MAP[pairKey(teams[hi], teams[ai])] = `group-${letter}-${idx + 1}`;
   });
 });
 
