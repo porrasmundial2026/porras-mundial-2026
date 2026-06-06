@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../contexts/AuthContext';
 import { OfflineBanner } from '../components/OfflineBanner';
+import { UpdateBanner } from '../components/UpdateBanner';
 import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { T } from '../constants/theme';
 import {
@@ -57,6 +58,7 @@ export default function RootLayout() {
       <AuthProvider>
         <View style={styles.root}>
           <OfflineBanner />
+          <UpdateBanner />
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: T.color.bg } }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
