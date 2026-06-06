@@ -12,6 +12,7 @@ interface MatchResult {
   awayScore: number | null;
   status: 'upcoming' | 'live' | 'finished';
   penaltyWinner?: 'home' | 'away';
+  scheduledAt?: string; // hora de inicio real (ISO) desde la API
 }
 
 /**
@@ -26,10 +27,12 @@ function applyResults(matches: Match[], resultMap: Map<string, MatchResult>): Ma
     if (!r) return m;
     return {
       ...m,
-      status: r.status,
-      homeScore: r.homeScore ?? undefined,
-      awayScore: r.awayScore ?? undefined,
-      penaltyWinner: r.penaltyWinner,
+      // Solo sobrescribimos lo que venga definido (un doc puede tener solo la hora)
+      status: r.status ?? m.status,
+      homeScore: r.homeScore ?? m.homeScore,
+      awayScore: r.awayScore ?? m.awayScore,
+      penaltyWinner: r.penaltyWinner ?? m.penaltyWinner,
+      scheduledAt: r.scheduledAt ? new Date(r.scheduledAt) : m.scheduledAt,
     };
   });
 }

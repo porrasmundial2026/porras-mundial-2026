@@ -105,6 +105,24 @@ async function sync() {
 
   await batch.commit();
 
+  // Guardar la hora de inicio real de TODOS los partidos (incluidos los no jugados)
+  const timeBatch = db.batch();
+  let timeCount = 0;
+  for (const match of matches) {
+    if (!match.homeTeam?.name || !match.awayTeam?.name || !match.utcDate) continue;
+    const homeTeam = mapTeam(match.homeTeam.name);
+    const awayTeam = mapTeam(match.awayTeam.name);
+    const docId = `${homeTeam}__${awayTeam}`.replace(/\s/g, '_');
+    timeBatch.set(db.collection('matchResults').doc(docId), {
+      homeTeam,
+      awayTeam,
+      scheduledAt: match.utcDate, // ISO string con la hora real
+    }, { merge: true });
+    timeCount++;
+  }
+  await timeBatch.commit();
+  console.log(`Horas de inicio guardadas: ${timeCount}`);
+
   // Recalcular puntos de predicciones para partidos finalizados
   const finished = active.filter((m) => m.status === 'FINISHED');
   for (const match of finished) {
