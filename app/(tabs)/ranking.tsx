@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -16,13 +15,20 @@ import { Group, Prediction, RankingEntry, UserProfile } from '../../types';
 import { T } from '../../constants/theme';
 import { useMatchResults } from '../../hooks/useMatchResults';
 
+// react-native-view-shot es nativo: solo se carga en móvil
+const canShare = Platform.OS !== 'web';
+let ViewShot: any = View;
+if (canShare) {
+  try { ViewShot = require('react-native-view-shot').default; } catch {}
+}
+
 export default function RankingScreen() {
   const { user } = useAuth();
   const { groups, loading: groupsLoading } = useGroups();
   const liveMatches = useMatchResults();
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [loadingRanking, setLoadingRanking] = useState(false);
-  const shotRef = useRef<ViewShot>(null);
+  const shotRef = useRef<any>(null);
 
   async function shareRanking() {
     try {
@@ -130,7 +136,7 @@ export default function RankingScreen() {
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Ranking</Text>
-          {ranking.length > 0 && (
+          {ranking.length > 0 && canShare && (
             <Pressable style={styles.shareBtn} onPress={shareRanking}>
               <Ionicons name="share-social" size={16} color={T.color.accent} />
               <Text style={styles.shareBtnText}>Compartir</Text>
