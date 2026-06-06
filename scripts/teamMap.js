@@ -48,6 +48,7 @@ module.exports = {
   // Grupo H
   'Spain': 'España',
   'Cape Verde': 'Cabo Verde',
+  'Cape Verde Islands': 'Cabo Verde',
   'Cabo Verde': 'Cabo Verde',
   'Saudi Arabia': 'Arabia Saudita',
   'Uruguay': 'Uruguay',
