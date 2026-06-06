@@ -90,7 +90,20 @@ export default function PrediccionesScreen() {
       const sorted = [...filtered].sort((a, b) =>
         new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
       );
-      return [{ title: 'Por fecha', data: sorted }];
+      // Agrupar por día, con cabecera de fecha
+      const byDay = new Map<string, Match[]>();
+      for (const match of sorted) {
+        const d = new Date(match.scheduledAt);
+        const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        if (!byDay.has(dayKey)) byDay.set(dayKey, []);
+        byDay.get(dayKey)!.push(match);
+      }
+      return Array.from(byDay.values()).map((data) => {
+        const d = new Date(data[0].scheduledAt);
+        let title = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+        title = title.charAt(0).toUpperCase() + title.slice(1); // Capitalizar día
+        return { title, data, isDate: true };
+      });
     }
 
     const bySection = new Map<string, Match[]>();
@@ -162,14 +175,17 @@ export default function PrediccionesScreen() {
           contentContainerStyle={styles.list}
           stickySectionHeadersEnabled={false}
           keyboardShouldPersistTaps="handled"
-          renderSectionHeader={({ section: { title } }) => (
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{title}</Text>
-              {filter === 'group' && (
-                <Text style={styles.sectionSub}>{GROUPS[title.replace('Grupo ', '')]?.teams.join(' · ')}</Text>
-              )}
-            </View>
-          )}
+          renderSectionHeader={({ section }) => {
+            const { title } = section;
+            const isDate = (section as any).isDate;
+            const teams = !isDate && title.startsWith('Grupo ') ? GROUPS[title.replace('Grupo ', '')]?.teams.join(' · ') : null;
+            return (
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{title}</Text>
+                {teams && <Text style={styles.sectionSub}>{teams}</Text>}
+              </View>
+            );
+          }}
           renderItem={({ item }) => (
             viewingGroup ? (
               <View style={styles.groupMatchWrap}>
