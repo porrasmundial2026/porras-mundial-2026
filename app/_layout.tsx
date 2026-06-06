@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     backgroundColor: T.color.bg,
     // En web: columna centrada tipo móvil, no a pantalla completa
     ...(Platform.OS === 'web'
-      ? ({ width: '80%', maxWidth: 520, alignSelf: 'center', borderLeftWidth: 1, borderRightWidth: 1, borderColor: T.color.line } as object)
+      ? ({ width: '80%', alignSelf: 'center', borderLeftWidth: 1, borderRightWidth: 1, borderColor: T.color.line } as object)
       : {}),
   },
 });
