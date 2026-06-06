@@ -55,7 +55,8 @@ export function MatchCard({ match, prediction, onSave, readOnly = false }: Props
   const timeStr = new Date(match.scheduledAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <Pressable style={styles.card} onPress={handlePress}>
+    <View style={styles.card}>
+     <Pressable onPress={handlePress} disabled={!isPredictable}>
       {/* Equipos */}
       <View style={styles.teamsRow}>
         <View style={styles.team}>
@@ -120,6 +121,7 @@ export function MatchCard({ match, prediction, onSave, readOnly = false }: Props
           ) : null}
         </View>
       </View>
+     </Pressable>
 
       {/* Input inline */}
       {expanded && isPredictable && (
@@ -157,7 +159,7 @@ export function MatchCard({ match, prediction, onSave, readOnly = false }: Props
           </Pressable>
         </View>
       )}
-    </Pressable>
+    </View>
   );
 }
 
