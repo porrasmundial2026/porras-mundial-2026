@@ -176,7 +176,7 @@ function ResultCard({ match }: { match: Match }) {
         </View>
         <View style={styles.scoreCenter}>
           {isFinished || isLive ? (
-            <Text style={styles.score}>{match.homeScore} – {match.awayScore}</Text>
+            <Text style={[styles.score, isFinished && styles.scoreFinal, isLive && styles.scoreLive]}>{match.homeScore} – {match.awayScore}</Text>
           ) : (
             <Text style={styles.timeLarge}>{timeStr}</Text>
           )}
@@ -233,6 +233,8 @@ const styles = StyleSheet.create({
   teamName:    { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold', lineHeight: 18 },
   scoreCenter: { width: 80, alignItems: 'center', gap: 2 },
   score:       { color: T.color.ink, fontSize: 22, fontFamily: 'SchibstedGrotesk_700Bold' },
+  scoreFinal:  { color: T.color.good },
+  scoreLive:   { color: T.color.danger },
   timeLarge:   { color: T.color.ink, fontSize: 18, fontFamily: 'SchibstedGrotesk_700Bold' },
   finText:     { color: T.color.ink3, fontSize: 10, fontFamily: 'HankenGrotesk_500Medium', letterSpacing: 0.8 },
   dateSub:     { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_500Medium' },
