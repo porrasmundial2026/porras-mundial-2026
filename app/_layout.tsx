@@ -81,8 +81,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: T.color.bg,
     // En web: columna centrada tipo móvil, no a pantalla completa
-    ...(Platform.OS === 'web'
-      ? ({ width: '80%', alignSelf: 'center', borderLeftWidth: 1, borderRightWidth: 1, borderColor: T.color.line } as object)
-      : {}),
+    // En web: ancho completo (la app móvil no se toca)
   },
 });
