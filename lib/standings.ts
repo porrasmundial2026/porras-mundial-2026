@@ -32,8 +32,9 @@ export function computeGroupStanding(groupLetter: string, matches: Match[]): Tea
     });
   }
 
+  // Cuenta partidos finalizados Y en vivo (la clasificación refleja el directo)
   const groupMatches = matches.filter(
-    (m) => m.group === groupLetter && m.status === 'finished'
+    (m) => m.group === groupLetter && (m.status === 'finished' || m.status === 'live')
       && m.homeScore != null && m.awayScore != null
   );
 

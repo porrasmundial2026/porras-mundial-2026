@@ -53,6 +53,15 @@ export default function ResultadosScreen() {
   const standings    = useMemo(() => computeAllStandings(liveMatches), [liveMatches]);
   const groupLetters = Object.keys(GROUPS);
 
+  // Equipos que están jugando ahora mismo (para el punto verde en la tabla)
+  const liveTeams = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of liveMatches) {
+      if (m.status === 'live') { set.add(m.homeTeam); set.add(m.awayTeam); }
+    }
+    return set;
+  }, [liveMatches]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -121,7 +130,7 @@ export default function ResultadosScreen() {
             </View>
           }
           renderItem={({ item }) => (
-            <GroupStandingTable groupLetter={item} standings={standings.byGroup[item]} />
+            <GroupStandingTable groupLetter={item} standings={standings.byGroup[item]} liveTeams={liveTeams} />
           )}
         />
       )}

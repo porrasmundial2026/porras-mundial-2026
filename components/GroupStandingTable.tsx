@@ -1,16 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TeamStanding } from '../lib/standings';
-import { FLAG } from '../constants/flags';
+import { Flag } from './Flag';
 import { C, SHADOW } from '../constants/theme';
 import { GROUPS } from '../constants/matches';
 
 interface Props {
   groupLetter: string;
   standings: TeamStanding[];
+  liveTeams?: Set<string>;
 }
 
-export function GroupStandingTable({ groupLetter, standings }: Props) {
+export function GroupStandingTable({ groupLetter, standings, liveTeams }: Props) {
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Grupo {groupLetter}</Text>
@@ -33,9 +34,11 @@ export function GroupStandingTable({ groupLetter, standings }: Props) {
               <View style={[styles.dot, qualifies ? styles.dotQ : maybe ? styles.dotMaybe : styles.dotOut]} />
               <Text style={styles.pos}>{i + 1}</Text>
             </View>
-            <Text style={styles.team} numberOfLines={1}>
-              {FLAG[s.team] ?? '🏳️'} {s.team}
-            </Text>
+            <View style={styles.teamCell}>
+              <Flag team={s.team} size={20} />
+              <Text style={styles.team} numberOfLines={1}>{s.team}</Text>
+              {liveTeams?.has(s.team) && <View style={styles.liveDot} />}
+            </View>
             <Text style={styles.col}>{s.played}</Text>
             <Text style={styles.col}>{s.gd > 0 ? `+${s.gd}` : s.gd}</Text>
             <Text style={styles.colPts}>{s.points}</Text>
@@ -59,7 +62,9 @@ const styles = StyleSheet.create({
   dotMaybe: { backgroundColor: C.result },
   dotOut: { backgroundColor: 'transparent' },
   pos: { color: C.textSecondary, fontSize: 13, fontWeight: '600' },
-  team: { flex: 1, color: C.textPrimary, fontSize: 13, fontWeight: '600' },
+  teamCell: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  team: { flexShrink: 1, color: C.textPrimary, fontSize: 13, fontWeight: '600' },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#16a34a' },
   col: { width: 34, textAlign: 'center', color: C.textSecondary, fontSize: 13 },
   colPts: { width: 34, textAlign: 'center', color: C.accent, fontSize: 15, fontWeight: '800' },
 });
