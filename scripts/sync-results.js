@@ -59,8 +59,45 @@ async function updatePredictionPoints(matchId, homeScore, awayScore) {
   console.log(`  → ${snap.size} predicciones actualizadas para ${matchId}`);
 }
 
+// --- DIAGNÓSTICO TEMPORAL: ¿el plan gratuito devuelve goleadores? ---
+async function testGoals() {
+  try {
+    // Cogemos un partido ya finalizado de la Premier League (competición del plan gratuito)
+    const r = await fetch('https://api.football-data.org/v4/competitions/PL/matches?status=FINISHED', {
+      headers: { 'X-Auth-Token': API_TOKEN },
+    });
+    if (!r.ok) { console.log(`[TEST GOLES] No se pudo listar PL: ${r.status}`); return; }
+    const data = await r.json();
+    const m = (data.matches ?? [])[0];
+    if (!m) { console.log('[TEST GOLES] No hay partidos finalizados en PL'); return; }
+
+    // Pedimos el detalle de ese partido
+    const det = await fetch(`https://api.football-data.org/v4/matches/${m.id}`, {
+      headers: { 'X-Auth-Token': API_TOKEN },
+    });
+    console.log(`[TEST GOLES] Detalle partido ${m.id}: HTTP ${det.status}`);
+    if (!det.ok) {
+      console.log('[TEST GOLES] => El detalle de partido NO está disponible (probablemente de pago)');
+      return;
+    }
+    const dd = await det.json();
+    const goals = dd.goals ?? null;
+    if (goals && goals.length > 0) {
+      console.log(`[TEST GOLES] ✓ DISPONIBLE. Ejemplo: ${goals[0].minute}' ${goals[0].scorer?.name} (${goals[0].team?.name})`);
+      console.log(`[TEST GOLES] Total goles en ese partido: ${goals.length}`);
+    } else if (goals && goals.length === 0) {
+      console.log('[TEST GOLES] goals viene VACÍO (campo existe pero sin datos en plan gratuito)');
+    } else {
+      console.log('[TEST GOLES] No hay campo goals en la respuesta');
+    }
+  } catch (e) {
+    console.log('[TEST GOLES] Error:', e.message);
+  }
+}
+
 async function sync() {
   console.log(`[${new Date().toISOString()}] Iniciando sincronización...`);
+  await testGoals();
 
   const res = await fetch(API_URL, {
     headers: { 'X-Auth-Token': API_TOKEN },
