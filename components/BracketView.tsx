@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Match } from '../types';
-import { FLAG } from '../constants/flags';
+import { Flag } from './Flag';
 import { C, SHADOW } from '../constants/theme';
 
 interface Props {
@@ -55,7 +55,7 @@ function TeamLine({ name, score, won, finished }: { name: string; score?: number
   const tbd = name === 'Por definir';
   return (
     <View style={styles.teamLine}>
-      <Text style={styles.flag}>{tbd ? '🏳️' : (FLAG[name] ?? '🏳️')}</Text>
+      {tbd ? <View style={styles.flagTbd} /> : <Flag team={name} size={18} />}
       <Text style={[styles.teamName, won && styles.teamNameWon, tbd && styles.tbd]} numberOfLines={1}>
         {tbd ? 'Por definir' : name}
       </Text>
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   columnInner: { flex: 1, justifyContent: 'space-around', gap: 10 },
   card: { backgroundColor: C.surface, borderRadius: 10, paddingVertical: 6, paddingHorizontal: 8, ...SHADOW },
   teamLine: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
-  flag: { fontSize: 16 },
+  flagTbd: { width: 18, height: 18, borderRadius: 9, backgroundColor: C.border },
   teamName: { flex: 1, color: C.textSecondary, fontSize: 12, fontWeight: '500' },
   teamNameWon: { color: C.textPrimary, fontWeight: '800' },
   tbd: { color: C.textTertiary, fontStyle: 'italic' },
