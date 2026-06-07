@@ -26,8 +26,8 @@ if (!isWeb) {
   }
 }
 
-// El botón de Google solo en móvil (en web no merece la pena)
-const showGoogleButton = nativeGoogleAvailable;
+// El botón de Google se muestra en web (popup Firebase) o en móvil (SDK nativo)
+const showGoogleButton = isWeb || nativeGoogleAvailable;
 
 export default function LoginScreen() {
   const { signIn, signInWithGoogle, signInWithGoogleWeb } = useAuth();
