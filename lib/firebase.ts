@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeAuth, getAuth, getReactNativePersistence, browserLocalPersistence } from 'firebase/auth';
+import { initializeAuth, getAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -16,14 +16,13 @@ const firebaseConfig = {
 const isFirstInit = getApps().length === 0;
 const app = isFirstInit ? initializeApp(firebaseConfig) : getApp();
 
-export const auth = isFirstInit
-  ? initializeAuth(app, {
-      // En web usa persistencia del navegador; en móvil, AsyncStorage
-      persistence: Platform.OS === 'web'
-        ? browserLocalPersistence
-        : getReactNativePersistence(ReactNativeAsyncStorage),
-    })
-  : getAuth(app);
+// En web: getAuth (incluye persistencia de navegador + resolver de popups para Google).
+// En móvil: initializeAuth con AsyncStorage para mantener la sesión.
+export const auth = Platform.OS === 'web'
+  ? getAuth(app)
+  : (isFirstInit
+      ? initializeAuth(app, { persistence: getReactNativePersistence(ReactNativeAsyncStorage) })
+      : getAuth(app));
 
 export const db = getFirestore(app);
 
