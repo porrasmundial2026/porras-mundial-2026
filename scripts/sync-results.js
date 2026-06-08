@@ -129,29 +129,6 @@ async function sync() {
   }
   await timeBatch.commit();
   console.log(`Horas de inicio guardadas: ${timeCount}`);
-  const conVenue = matches.filter((m) => m.venue).length;
-  console.log(`Partidos con sede de la API (masivo): ${conVenue}`);
-
-  // --- DIAGNÓSTICO TEMPORAL: ¿la sede viene en el detalle del partido? ---
-  try {
-    const first = matches[0];
-    if (first) {
-      console.log(`[TEST SEDE] Campos en masivo: ${Object.keys(first).join(', ')}`);
-      console.log(`[TEST SEDE] venue en masivo: ${JSON.stringify(first.venue)}`);
-      const det = await fetch(`https://api.football-data.org/v4/matches/${first.id}`, {
-        headers: { 'X-Auth-Token': API_TOKEN },
-      });
-      console.log(`[TEST SEDE] Detalle HTTP ${det.status}`);
-      if (det.ok) {
-        const dd = await det.json();
-        console.log(`[TEST SEDE] venue en detalle: ${JSON.stringify(dd.venue)}`);
-        console.log(`[TEST SEDE] Campos en detalle: ${Object.keys(dd).join(', ')}`);
-      }
-    }
-  } catch (e) {
-    console.log('[TEST SEDE] Error:', e.message);
-  }
-  // --- FIN DIAGNÓSTICO ---
 
   if (unmappedTeams.size > 0) {
     console.log('⚠️ EQUIPOS SIN MAPEAR (revisar teamMap.js):', JSON.stringify([...unmappedTeams]));

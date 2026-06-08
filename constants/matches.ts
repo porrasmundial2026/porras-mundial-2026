@@ -1,4 +1,5 @@
 import { Match } from '../types';
+import { venueFor } from './venues';
 
 // FIFA World Cup 2026 — 12 groups (A–L), 4 teams each
 // Group stage dates are approximate; update once FIFA publishes official schedule
@@ -46,7 +47,7 @@ function generateGroupMatches(): Match[] {
         group: groupLetter,
         phase: 'group',
         scheduledAt: date,
-        venue: GROUP_VENUES[groupLetter] ?? 'Por confirmar',
+        venue: venueFor(teams[homeIdx], teams[awayIdx]) ?? GROUP_VENUES[groupLetter] ?? 'Por confirmar',
         status: 'upcoming',
       });
     });
