@@ -29,6 +29,26 @@ export interface BracketMatch {
   away: Slot;
 }
 
+// Etiqueta corta de un partido para referenciarlo (Ganador/Perdedor de...)
+function matchShort(id: string): string {
+  if (id.startsWith('r32-')) return `16avos ${id.split('-')[1]}`;
+  if (id.startsWith('r16-')) return `8vos ${id.split('-')[1]}`;
+  if (id.startsWith('qf-'))  return `Cuartos ${id.split('-')[1]}`;
+  if (id.startsWith('sf-'))  return `Semi ${id.split('-')[1]}`;
+  return id;
+}
+
+// Texto legible de un hueco del cuadro cuando el equipo aún no se conoce
+export function slotLabel(slot: Slot): string {
+  switch (slot.kind) {
+    case 'first':  return `1º Grupo ${slot.group}`;
+    case 'second': return `2º Grupo ${slot.group}`;
+    case 'third':  return `3º (${slot.allowedGroups.join('/')})`;
+    case 'winner': return `Ganador ${matchShort(slot.matchId)}`;
+    case 'loser':  return `Perdedor ${matchShort(slot.matchId)}`;
+  }
+}
+
 // --- DIECISEISAVOS (M73-M88) — cruces oficiales ---
 export const R32: BracketMatch[] = [
   { id: 'r32-1',  home: { kind: 'second', group: 'A' }, away: { kind: 'second', group: 'B' } },                       // M73

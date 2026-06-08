@@ -2,7 +2,13 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Match } from '../types';
 import { Flag } from './Flag';
+import { BRACKET, slotLabel } from '../constants/bracket';
 import { C, SHADOW } from '../constants/theme';
+
+// Mapa id de partido -> etiquetas de sus dos huecos (1ºA, Ganador..., etc.)
+const SLOTS: Record<string, { home: string; away: string }> = Object.fromEntries(
+  BRACKET.map((b) => [b.id, { home: slotLabel(b.home), away: slotLabel(b.away) }])
+);
 
 interface Props {
   matches: Match[];
@@ -44,11 +50,13 @@ function BracketMatchCard({ match }: { match: Match }) {
 
   const dateStr = new Date(match.scheduledAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
+  const slots = SLOTS[match.id];
+
   return (
     <View style={styles.card}>
-      <TeamLine name={match.homeTeam} score={match.homeScore} won={homeWon} finished={isFinished} />
+      <TeamLine name={match.homeTeam} placeholder={slots?.home} score={match.homeScore} won={homeWon} finished={isFinished} />
       <View style={styles.divider} />
-      <TeamLine name={match.awayTeam} score={match.awayScore} won={awayWon} finished={isFinished} />
+      <TeamLine name={match.awayTeam} placeholder={slots?.away} score={match.awayScore} won={awayWon} finished={isFinished} />
       <View style={styles.metaWrap}>
         <Text style={styles.meta} numberOfLines={1}>{dateStr}</Text>
         {match.venue && match.venue !== 'Por confirmar' && (
@@ -59,13 +67,13 @@ function BracketMatchCard({ match }: { match: Match }) {
   );
 }
 
-function TeamLine({ name, score, won, finished }: { name: string; score?: number; won: boolean; finished: boolean }) {
+function TeamLine({ name, placeholder, score, won, finished }: { name: string; placeholder?: string; score?: number; won: boolean; finished: boolean }) {
   const tbd = name === 'Por definir';
   return (
     <View style={styles.teamLine}>
       {tbd ? <View style={styles.flagTbd} /> : <Flag team={name} size={18} />}
       <Text style={[styles.teamName, won && styles.teamNameWon, tbd && styles.tbd]} numberOfLines={1}>
-        {tbd ? 'Por definir' : name}
+        {tbd ? (placeholder ?? 'Por definir') : name}
       </Text>
       {finished && <Text style={[styles.score, won && styles.scoreWon]}>{score}</Text>}
     </View>
