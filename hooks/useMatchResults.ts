@@ -13,7 +13,6 @@ interface MatchResult {
   status: 'upcoming' | 'live' | 'finished';
   penaltyWinner?: 'home' | 'away';
   scheduledAt?: string; // hora de inicio real (ISO) desde la API
-  venue?: string;       // sede real desde la API
 }
 
 /** Clave de emparejamiento independiente del orden local/visitante. */
@@ -47,7 +46,6 @@ function applyResults(matches: Match[], resultMap: Map<string, MatchResult>): Ma
       awayScore: rAway ?? m.awayScore,
       penaltyWinner: penaltyWinner ?? m.penaltyWinner,
       scheduledAt: r.scheduledAt ? new Date(r.scheduledAt) : m.scheduledAt,
-      venue: r.venue ?? m.venue,
     };
   });
 }

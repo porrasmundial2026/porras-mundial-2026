@@ -118,13 +118,11 @@ async function sync() {
     if (!match.homeTeam?.name || !match.awayTeam?.name || !match.utcDate) continue;
     const homeTeam = mapTeam(match.homeTeam.name);
     const awayTeam = mapTeam(match.awayTeam.name);
-    const data = {
+    timeBatch.set(db.collection('matchResults').doc(pairKey(homeTeam, awayTeam)), {
       homeTeam,
       awayTeam,
       scheduledAt: match.utcDate, // ISO string con la hora real
-    };
-    if (match.venue) data.venue = match.venue; // sede real (si la API la da)
-    timeBatch.set(db.collection('matchResults').doc(pairKey(homeTeam, awayTeam)), data, { merge: true });
+    }, { merge: true });
     timeCount++;
   }
   await timeBatch.commit();
