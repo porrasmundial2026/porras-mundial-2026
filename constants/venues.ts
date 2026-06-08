@@ -105,3 +105,47 @@ const MATCH_VENUES: Record<string, string> = Object.fromEntries(
 export function venueFor(home: string, away: string): string | undefined {
   return MATCH_VENUES[vk(home, away)];
 }
+
+/**
+ * Sedes de la eliminatoria, por hueco del cuadro (los equipos son TBD pero
+ * la sede de cada partido está fijada por FIFA). IDs según constants/bracket.ts.
+ */
+export const KNOCKOUT_VENUES: Record<string, string> = {
+  // Dieciseisavos (M73-M88)
+  'r32-1':  'SoFi Stadium, Los Ángeles',
+  'r32-2':  'Gillette Stadium, Boston',
+  'r32-3':  'Estadio BBVA, Monterrey',
+  'r32-4':  'NRG Stadium, Houston',
+  'r32-5':  'MetLife Stadium, Nueva York',
+  'r32-6':  'AT&T Stadium, Dallas',
+  'r32-7':  'Estadio Azteca, Ciudad de México',
+  'r32-8':  'Mercedes-Benz Stadium, Atlanta',
+  'r32-9':  "Levi's Stadium, San Francisco",
+  'r32-10': 'Lumen Field, Seattle',
+  'r32-11': 'BMO Field, Toronto',
+  'r32-12': 'SoFi Stadium, Los Ángeles',
+  'r32-13': 'BC Place, Vancouver',
+  'r32-14': 'Hard Rock Stadium, Miami',
+  'r32-15': 'Arrowhead Stadium, Kansas City',
+  'r32-16': 'AT&T Stadium, Dallas',
+  // Octavos (M89-M96)
+  'r16-1': 'Lincoln Financial Field, Filadelfia',
+  'r16-2': 'NRG Stadium, Houston',
+  'r16-3': 'MetLife Stadium, Nueva York',
+  'r16-4': 'Estadio Azteca, Ciudad de México',
+  'r16-5': 'AT&T Stadium, Dallas',
+  'r16-6': 'Lumen Field, Seattle',
+  'r16-7': 'Mercedes-Benz Stadium, Atlanta',
+  'r16-8': 'BC Place, Vancouver',
+  // Cuartos (M97-M100)
+  'qf-1': 'Gillette Stadium, Boston',
+  'qf-2': 'SoFi Stadium, Los Ángeles',
+  'qf-3': 'Hard Rock Stadium, Miami',
+  'qf-4': 'Arrowhead Stadium, Kansas City',
+  // Semifinales (M101-M102)
+  'sf-1': 'AT&T Stadium, Dallas',
+  'sf-2': 'Mercedes-Benz Stadium, Atlanta',
+  // Tercer puesto (M103) y Final (M104)
+  'third-1': 'Hard Rock Stadium, Miami',
+  'final-1': 'MetLife Stadium, Nueva York',
+};
