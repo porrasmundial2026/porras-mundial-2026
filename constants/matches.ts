@@ -1,5 +1,11 @@
 import { Match } from '../types';
-import { venueFor, KNOCKOUT_VENUES } from './venues';
+import { venueFor, KNOCKOUT_VENUES, KNOCKOUT_DATES } from './venues';
+
+// Hora neutra para eliminatoria (la real no se sabe hasta tener los equipos)
+function koDate(id: string, fallback: string): Date {
+  const d = KNOCKOUT_DATES[id];
+  return new Date(d ? `${d}T19:00:00Z` : fallback);
+}
 
 // FIFA World Cup 2026 — 12 groups (A–L), 4 teams each
 // Group stage dates are approximate; update once FIFA publishes official schedule
@@ -79,7 +85,7 @@ const KNOCKOUT_MATCHES: Match[] = [
     homeTeam: 'Por definir',
     awayTeam: 'Por definir',
     phase: 'r32' as const,
-    scheduledAt: new Date(`2026-07-0${4 + Math.floor(i / 4)}T21:00:00Z`),
+    scheduledAt: koDate(`r32-${i + 1}`, '2026-06-28T19:00:00Z'),
     venue: KNOCKOUT_VENUES[`r32-${i + 1}`] ?? 'Por confirmar',
     status: 'upcoming' as const,
   })),
@@ -89,7 +95,7 @@ const KNOCKOUT_MATCHES: Match[] = [
     homeTeam: 'Por definir',
     awayTeam: 'Por definir',
     phase: 'r16' as const,
-    scheduledAt: new Date(`2026-07-${11 + Math.floor(i / 2)}T21:00:00Z`),
+    scheduledAt: koDate(`r16-${i + 1}`, '2026-07-04T19:00:00Z'),
     venue: KNOCKOUT_VENUES[`r16-${i + 1}`] ?? 'Por confirmar',
     status: 'upcoming' as const,
   })),
@@ -99,17 +105,17 @@ const KNOCKOUT_MATCHES: Match[] = [
     homeTeam: 'Por definir',
     awayTeam: 'Por definir',
     phase: 'quarter' as const,
-    scheduledAt: new Date(`2026-07-${17 + Math.floor(i / 2)}T21:00:00Z`),
+    scheduledAt: koDate(`qf-${i + 1}`, '2026-07-09T19:00:00Z'),
     venue: KNOCKOUT_VENUES[`qf-${i + 1}`] ?? 'Por confirmar',
     status: 'upcoming' as const,
   })),
   // Semifinals (2 matches) — July 21–22
-  { id: 'sf-1', homeTeam: 'Por definir', awayTeam: 'Por definir', phase: 'semi', scheduledAt: new Date('2026-07-21T21:00:00Z'), venue: KNOCKOUT_VENUES['sf-1'] ?? 'Por confirmar', status: 'upcoming' },
-  { id: 'sf-2', homeTeam: 'Por definir', awayTeam: 'Por definir', phase: 'semi', scheduledAt: new Date('2026-07-22T21:00:00Z'), venue: KNOCKOUT_VENUES['sf-2'] ?? 'Por confirmar', status: 'upcoming' },
-  // Third place — July 25
-  { id: 'third-1', homeTeam: 'Por definir', awayTeam: 'Por definir', phase: 'third', scheduledAt: new Date('2026-07-25T18:00:00Z'), venue: KNOCKOUT_VENUES['third-1'] ?? 'Por confirmar', status: 'upcoming' },
-  // Final — July 26
-  { id: 'final-1', homeTeam: 'Por definir', awayTeam: 'Por definir', phase: 'final', scheduledAt: new Date('2026-07-26T21:00:00Z'), venue: 'MetLife Stadium, Nueva York', status: 'upcoming' },
+  { id: 'sf-1', homeTeam: 'Por definir', awayTeam: 'Por definir', phase: 'semi', scheduledAt: koDate('sf-1', '2026-07-14T19:00:00Z'), venue: KNOCKOUT_VENUES['sf-1'] ?? 'Por confirmar', status: 'upcoming' },
+  { id: 'sf-2', homeTeam: 'Por definir', awayTeam: 'Por definir', phase: 'semi', scheduledAt: koDate('sf-2', '2026-07-15T19:00:00Z'), venue: KNOCKOUT_VENUES['sf-2'] ?? 'Por confirmar', status: 'upcoming' },
+  // Tercer puesto — 18 julio
+  { id: 'third-1', homeTeam: 'Por definir', awayTeam: 'Por definir', phase: 'third', scheduledAt: koDate('third-1', '2026-07-18T19:00:00Z'), venue: KNOCKOUT_VENUES['third-1'] ?? 'Por confirmar', status: 'upcoming' },
+  // Final — 19 julio
+  { id: 'final-1', homeTeam: 'Por definir', awayTeam: 'Por definir', phase: 'final', scheduledAt: koDate('final-1', '2026-07-19T19:00:00Z'), venue: KNOCKOUT_VENUES['final-1'] ?? 'MetLife Stadium, Nueva York', status: 'upcoming' },
 ];
 
 export const ALL_MATCHES: Match[] = [
