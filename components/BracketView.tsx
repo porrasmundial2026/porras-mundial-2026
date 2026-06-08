@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { Match } from '../types';
 import { Flag } from './Flag';
 import { BRACKET, slotLabel } from '../constants/bracket';
@@ -24,7 +24,13 @@ const ROUNDS: { key: Match['phase']; label: string }[] = [
 
 export function BracketView({ matches }: Props) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.container}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator
+      contentContainerStyle={styles.container}
+      // En web forzamos barra de scroll horizontal (con ratón no se puede arrastrar)
+      style={Platform.OS === 'web' ? ({ overflowX: 'auto', overflowY: 'hidden' } as any) : undefined}
+    >
       {ROUNDS.map(({ key, label }) => {
         const roundMatches = matches.filter((m) => m.phase === key);
         if (roundMatches.length === 0) return null;
