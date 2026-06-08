@@ -24,25 +24,26 @@ const ROUNDS: { key: Match['phase']; label: string }[] = [
 
 export function BracketView({ matches }: Props) {
   return (
+    // Scroll vertical (por fuera) + horizontal (por dentro): cuadro ancho y alto
     <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator
-      contentContainerStyle={styles.container}
-      // En web permitimos scroll en ambos sentidos (el cuadro es ancho y alto)
-      style={Platform.OS === 'web' ? ({ overflowX: 'auto', overflowY: 'auto', maxHeight: '80vh' } as any) : undefined}
+      showsVerticalScrollIndicator
+      style={Platform.OS === 'web' ? ({ maxHeight: '82vh' } as any) : undefined}
+      contentContainerStyle={{ paddingBottom: 24 }}
     >
-      {ROUNDS.map(({ key, label }) => {
-        const roundMatches = matches.filter((m) => m.phase === key);
-        if (roundMatches.length === 0) return null;
-        return (
-          <View key={key} style={styles.column}>
-            <Text style={styles.roundLabel}>{label}</Text>
-            <View style={styles.columnInner}>
-              {roundMatches.map((m) => <BracketMatchCard key={m.id} match={m} />)}
+      <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.container}>
+        {ROUNDS.map(({ key, label }) => {
+          const roundMatches = matches.filter((m) => m.phase === key);
+          if (roundMatches.length === 0) return null;
+          return (
+            <View key={key} style={styles.column}>
+              <Text style={styles.roundLabel}>{label}</Text>
+              <View style={styles.columnInner}>
+                {roundMatches.map((m) => <BracketMatchCard key={m.id} match={m} />)}
+              </View>
             </View>
-          </View>
-        );
-      })}
+          );
+        })}
+      </ScrollView>
     </ScrollView>
   );
 }
