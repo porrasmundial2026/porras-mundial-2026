@@ -28,8 +28,8 @@ export function BracketView({ matches }: Props) {
       horizontal
       showsHorizontalScrollIndicator
       contentContainerStyle={styles.container}
-      // En web forzamos barra de scroll horizontal (con ratón no se puede arrastrar)
-      style={Platform.OS === 'web' ? ({ overflowX: 'auto', overflowY: 'hidden' } as any) : undefined}
+      // En web permitimos scroll en ambos sentidos (el cuadro es ancho y alto)
+      style={Platform.OS === 'web' ? ({ overflowX: 'auto', overflowY: 'auto', maxHeight: '80vh' } as any) : undefined}
     >
       {ROUNDS.map(({ key, label }) => {
         const roundMatches = matches.filter((m) => m.phase === key);
