@@ -42,11 +42,19 @@ function BracketMatchCard({ match }: { match: Match }) {
   const awayWon = isFinished && (match.awayScore ?? 0) > (match.homeScore ?? 0)
     || (isFinished && match.penaltyWinner === 'away');
 
+  const dateStr = new Date(match.scheduledAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+
   return (
     <View style={styles.card}>
       <TeamLine name={match.homeTeam} score={match.homeScore} won={homeWon} finished={isFinished} />
       <View style={styles.divider} />
       <TeamLine name={match.awayTeam} score={match.awayScore} won={awayWon} finished={isFinished} />
+      <View style={styles.metaWrap}>
+        <Text style={styles.meta} numberOfLines={1}>{dateStr}</Text>
+        {match.venue && match.venue !== 'Por confirmar' && (
+          <Text style={styles.metaVenue} numberOfLines={1}>{match.venue}</Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -80,4 +88,7 @@ const styles = StyleSheet.create({
   score: { color: C.textSecondary, fontSize: 13, fontWeight: '700', minWidth: 14, textAlign: 'right' },
   scoreWon: { color: C.accent },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: C.separator, marginVertical: 1 },
+  metaWrap: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.separator, marginTop: 4, paddingTop: 4, gap: 1 },
+  meta: { color: C.textSecondary, fontSize: 10, fontWeight: '700' },
+  metaVenue: { color: C.textTertiary, fontSize: 9 },
 });
