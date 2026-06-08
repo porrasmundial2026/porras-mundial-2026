@@ -118,15 +118,19 @@ async function sync() {
     if (!match.homeTeam?.name || !match.awayTeam?.name || !match.utcDate) continue;
     const homeTeam = mapTeam(match.homeTeam.name);
     const awayTeam = mapTeam(match.awayTeam.name);
-    timeBatch.set(db.collection('matchResults').doc(pairKey(homeTeam, awayTeam)), {
+    const data = {
       homeTeam,
       awayTeam,
       scheduledAt: match.utcDate, // ISO string con la hora real
-    }, { merge: true });
+    };
+    if (match.venue) data.venue = match.venue; // sede real (si la API la da)
+    timeBatch.set(db.collection('matchResults').doc(pairKey(homeTeam, awayTeam)), data, { merge: true });
     timeCount++;
   }
   await timeBatch.commit();
   console.log(`Horas de inicio guardadas: ${timeCount}`);
+  const conVenue = matches.filter((m) => m.venue).length;
+  console.log(`Partidos con sede de la API: ${conVenue}`);
 
   if (unmappedTeams.size > 0) {
     console.log('⚠️ EQUIPOS SIN MAPEAR (revisar teamMap.js):', JSON.stringify([...unmappedTeams]));
