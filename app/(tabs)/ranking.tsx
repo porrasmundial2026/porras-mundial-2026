@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { RankingItem } from '../../components/RankingItem';
 import { Podium } from '../../components/Podium';
 import { buildRanking, calculatePoints } from '../../lib/scoring';
+import { generateDailyRecap } from '../../lib/recap';
 import { FLAG } from '../../constants/flags';
 import { Group, Prediction, RankingEntry, UserProfile } from '../../types';
 import { T } from '../../constants/theme';
@@ -45,6 +46,11 @@ export default function RankingScreen() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
 
   const finishedMatches = useMemo(() => liveMatches.filter((m) => m.status === 'finished'), [liveMatches]);
+
+  const recap = useMemo(
+    () => generateDailyRecap(members, predictions, finishedMatches),
+    [members, predictions, finishedMatches]
+  );
 
   // Ranking calculado en tiempo real cada vez que cambian partidos o predicciones
   const ranking = useMemo(
@@ -187,6 +193,11 @@ export default function RankingScreen() {
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <>
+              {recap && (
+                <View style={styles.recapCard}>
+                  <Text style={styles.recapText}>{recap}</Text>
+                </View>
+              )}
               {groupStats && (
                 <View style={styles.statsSection}>
                   <Text style={[styles.statsSectionTitle, { paddingHorizontal: 0, paddingTop: 0 }]}>Destacados del grupo</Text>
@@ -274,6 +285,8 @@ const styles = StyleSheet.create({
   title:     { color: T.color.ink, fontSize: 27, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
   shareBtn:  { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: T.color.soft, borderRadius: T.radius.chip, paddingHorizontal: 12, paddingVertical: 7 },
   shareBtnText: { color: T.color.accent, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
+  recapCard: { marginHorizontal: T.space.lg, marginTop: T.space.sm, backgroundColor: T.color.soft, borderRadius: T.radius.card, padding: T.space.md },
+  recapText: { color: T.color.ink, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', lineHeight: 20 },
   statsSection: { paddingHorizontal: T.space.lg, paddingTop: T.space.sm, gap: T.space.sm },
   statsSectionTitle: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: T.space.lg, paddingTop: T.space.md, paddingBottom: 4 },
   statCard: { flexDirection: 'row', alignItems: 'center', gap: T.space.md, backgroundColor: T.color.surface, borderRadius: T.radius.card, padding: T.space.md, borderWidth: 1, borderColor: T.color.line, ...T.shadow },
