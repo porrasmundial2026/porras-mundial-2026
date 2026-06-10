@@ -26,7 +26,18 @@ export function generateDailyRecap(
 
   // Última fecha (día) con partidos finalizados
   const fin = finishedMatches.filter((m) => m.status === 'finished' && m.homeScore != null && m.awayScore != null);
-  if (fin.length === 0) return null;
+
+  // Aún no ha empezado / no hay resultados: mensaje de cuenta atrás
+  if (fin.length === 0) {
+    const FIRST_MATCH = new Date('2026-06-11T19:00:00Z');
+    const dayMs = 86400000;
+    const startOfDay = (d: Date) => Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / dayMs);
+    const diffDays = startOfDay(FIRST_MATCH) - startOfDay(new Date());
+    if (diffDays > 1)  return `⚽ Faltan ${diffDays} días para el Mundial. Ve afinando tus predicciones 🍀`;
+    if (diffDays === 1) return `⚽ ¡Mañana empieza el Mundial! Mucha suerte con tus predicciones 🍀`;
+    if (diffDays === 0) return `⚽ ¡Hoy arranca el Mundial! Que empiece la porra 🔥🍀`;
+    return `⚽ ¡El Mundial ya está en marcha! Mucha suerte 🍀`;
+  }
 
   const dayKey = (m: Match) => {
     const d = new Date(m.scheduledAt);
