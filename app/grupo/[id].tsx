@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, Share, Alert,
+  View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, Share, Alert, Modal,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { doc, getDoc, deleteDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePokes, sendPoke } from '../../hooks/usePokes';
 import { Group, UserProfile } from '../../types';
 import { T, SHADOW } from '../../constants/theme';
 import { MAX_GROUP_MEMBERS } from '../../constants/admin';
+
+const POKE_EMOJIS = ['🔥', '😂', '💩', '👑', '🐐', '😱', '🤡', '💪'];
 
 export default function GrupoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,6 +19,28 @@ export default function GrupoDetailScreen() {
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<{ userId: string; displayName: string; photoURL: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pokeTarget, setPokeTarget] = useState<{ uid: string; name: string } | null>(null);
+  const pokes = usePokes(id ?? null);
+
+  function timeAgo(seconds?: number) {
+    if (!seconds) return '';
+    const diff = Math.floor(Date.now() / 1000 - seconds);
+    if (diff < 60) return 'ahora';
+    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+    return `hace ${Math.floor(diff / 86400)} d`;
+  }
+
+  async function handleSendPoke(emoji: string) {
+    if (!pokeTarget || !user || !id) return;
+    const meName = user.displayName ?? 'Alguien';
+    setPokeTarget(null);
+    try {
+      await sendPoke(id, { uid: user.uid, name: meName }, pokeTarget, emoji);
+    } catch {
+      Alert.alert('Error', 'No se pudo enviar el pique');
+    }
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -131,20 +156,57 @@ export default function GrupoDetailScreen() {
                   <Text style={styles.memberAvatarText}>{m.displayName.charAt(0).toUpperCase()}</Text>
                 </View>
                 <Text style={styles.memberName}>{m.displayName}{m.userId === user?.uid ? ' (tú)' : ''}</Text>
-                {m.userId === group.ownerId ? (
-                  <Text style={styles.ownerBadge}>Admin</Text>
-                ) : user?.uid === group.ownerId ? (
+                {m.userId === group.ownerId && <Text style={styles.ownerBadge}>Admin</Text>}
+                {m.userId !== user?.uid && (
+                  <Pressable style={styles.pokeBtn} onPress={() => setPokeTarget({ uid: m.userId, name: m.displayName })}>
+                    <Text style={styles.pokeBtnText}>🔥 Pique</Text>
+                  </Pressable>
+                )}
+                {m.userId !== group.ownerId && user?.uid === group.ownerId && (
                   <Pressable style={styles.kickBtn} onPress={() => kickMember(m.userId, m.displayName)}>
                     <Text style={styles.kickBtnText}>Expulsar</Text>
                   </Pressable>
-                ) : null}
+                )}
               </View>
             ))}
 
+            {/* Muro de piques */}
+            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Piques</Text>
+            {pokes.length === 0 ? (
+              <Text style={styles.pokeEmpty}>Aún no hay piques. ¡Lanza el primero! 🔥</Text>
+            ) : (
+              pokes.map((p) => (
+                <View key={p.id} style={styles.pokeRow}>
+                  <Text style={styles.pokeEmojiBig}>{p.emoji}</Text>
+                  <Text style={styles.pokeText} numberOfLines={2}>
+                    <Text style={styles.pokeBold}>{p.fromUid === user?.uid ? 'Tú' : p.fromName}</Text>
+                    {' → '}
+                    <Text style={styles.pokeBold}>{p.toUid === user?.uid ? 'ti' : p.toName}</Text>
+                  </Text>
+                  <Text style={styles.pokeTime}>{timeAgo(p.createdAt?.seconds)}</Text>
+                </View>
+              ))
+            )}
           </>
         }
         renderItem={() => null}
       />
+
+      {/* Selector de emoji para el pique */}
+      <Modal visible={!!pokeTarget} transparent animationType="fade" onRequestClose={() => setPokeTarget(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setPokeTarget(null)}>
+          <View style={styles.emojiSheet}>
+            <Text style={styles.emojiTitle}>Lanzar pique a {pokeTarget?.name}</Text>
+            <View style={styles.emojiGrid}>
+              {POKE_EMOJIS.map((e) => (
+                <Pressable key={e} style={styles.emojiBtn} onPress={() => handleSendPoke(e)}>
+                  <Text style={styles.emojiBig}>{e}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -179,6 +241,20 @@ const styles = StyleSheet.create({
   ownerBadge:  { color: T.color.accent, fontSize: 12, fontFamily: 'HankenGrotesk_700Bold', backgroundColor: T.color.soft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: T.radius.chip },
   kickBtn:     { backgroundColor: '#FEE2E2', paddingHorizontal: 10, paddingVertical: 5, borderRadius: T.radius.chip },
   kickBtnText: { color: '#dc2626', fontSize: 12, fontFamily: 'HankenGrotesk_700Bold' },
+  pokeBtn:     { backgroundColor: T.color.soft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: T.radius.chip },
+  pokeBtnText: { color: T.color.accent, fontSize: 12, fontFamily: 'HankenGrotesk_700Bold' },
+  pokeEmpty:   { color: T.color.ink3, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', paddingHorizontal: 16, paddingVertical: 8 },
+  pokeRow:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: T.color.line, backgroundColor: T.color.surface },
+  pokeEmojiBig:{ fontSize: 22 },
+  pokeText:    { flex: 1, color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium' },
+  pokeBold:    { color: T.color.ink, fontFamily: 'HankenGrotesk_700Bold' },
+  pokeTime:    { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
+  modalOverlay:{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 32 },
+  emojiSheet:  { backgroundColor: T.color.surface, borderRadius: 20, padding: 20, width: '100%', maxWidth: 360, gap: 14 },
+  emojiTitle:  { color: T.color.ink, fontSize: 16, fontFamily: 'SchibstedGrotesk_700Bold', textAlign: 'center' },
+  emojiGrid:   { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
+  emojiBtn:    { width: 56, height: 56, borderRadius: 14, backgroundColor: T.color.bg, alignItems: 'center', justifyContent: 'center' },
+  emojiBig:    { fontSize: 28 },
   empty:       { padding: 32, alignItems: 'center', gap: 10 },
   emptyEmoji:  { fontSize: 40 },
   emptyText:   { color: T.color.ink2, fontSize: 15, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', lineHeight: 24 },
