@@ -79,7 +79,7 @@ export default function PrediccionesScreen() {
   const [reactTarget, setReactTarget] = useState<{ matchId: string; uid: string; name: string } | null>(null);
   const [reactInfo, setReactInfo] = useState<{ matchId: string; uid: string; name: string } | null>(null);
 
-  const REACTION_EMOJIS = ['🔥', '😂', '💩', '👑', '🐐', '😱', '🤡', '👏'];
+  const REACTION_EMOJIS = ['🔥', '😂', '👑', '🐐', '😱', '🤡', '👏', '🙈'];
 
   async function handleReact(emoji: string) {
     if (!reactTarget || !user || !selectedGroup) return;
@@ -234,9 +234,7 @@ export default function PrediccionesScreen() {
                       return (
                         <View key={m.uid} style={styles.predRow}>
                           <View style={styles.predLeft}>
-                            <Pressable onPress={() => setReactTarget({ matchId: item.id, uid: m.uid, name: m.displayName })}>
-                              <Text style={styles.predName} numberOfLines={1}>{m.displayName}{m.uid === user?.uid ? ' (tú)' : ''}</Text>
-                            </Pressable>
+                            <Text style={styles.predName} numberOfLines={1}>{m.displayName}{m.uid === user?.uid ? ' (tú)' : ''}</Text>
                             {reacts.length > 0 && (
                               <Pressable style={styles.reactRow} onPress={() => setReactInfo({ matchId: item.id, uid: m.uid, name: m.displayName })}>
                                 {reacts.map(([emoji, count]) => (
@@ -248,15 +246,18 @@ export default function PrediccionesScreen() {
                               </Pressable>
                             )}
                           </View>
-                          <Pressable onPress={() => setReactTarget({ matchId: item.id, uid: m.uid, name: m.displayName })}>
-                            <Text style={[styles.predScore, !p && styles.predScoreEmpty]}>
-                              {p ? `${p.homeScore} – ${p.awayScore}` : 'Sin predecir'}
-                            </Text>
-                          </Pressable>
+                          <Text style={[styles.predScore, !p && styles.predScoreEmpty]}>
+                            {p ? `${p.homeScore} – ${p.awayScore}` : 'Sin predecir'}
+                          </Text>
                           {isFinished && p && (
                             <View style={[styles.ptsBadge, pts === 5 ? styles.pts5 : pts === 2 ? styles.pts2 : styles.pts0]}>
                               <Text style={styles.ptsBadgeText}>+{pts}</Text>
                             </View>
+                          )}
+                          {p && (
+                            <Pressable style={styles.reactBtn} onPress={() => setReactTarget({ matchId: item.id, uid: m.uid, name: m.displayName })}>
+                              <Ionicons name="happy-outline" size={16} color={T.color.accent} />
+                            </Pressable>
                           )}
                         </View>
                       );
@@ -385,6 +386,7 @@ const styles = StyleSheet.create({
   whoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: T.color.line },
   whoEmoji: { fontSize: 20 },
   whoName: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
+  reactBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: T.color.soft, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
   reactChip: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: T.color.bg, borderRadius: T.radius.chip, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: T.color.line },
   reactEmoji: { fontSize: 13 },
   reactCount: { color: T.color.ink2, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold' },
