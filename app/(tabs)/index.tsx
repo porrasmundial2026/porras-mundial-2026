@@ -77,6 +77,7 @@ export default function PrediccionesScreen() {
   const { byMatch, loading: loadingGroupPreds } = useGroupPredictions(memberUids);
   const reactionsByPred = useReactions(viewingGroup ? selectedGroup!.id : null);
   const [reactTarget, setReactTarget] = useState<{ matchId: string; uid: string; name: string } | null>(null);
+  const [reactInfo, setReactInfo] = useState<{ matchId: string; uid: string; name: string } | null>(null);
 
   const REACTION_EMOJIS = ['🔥', '😂', '💩', '👑', '🐐', '😱', '🤡', '👏'];
 
@@ -231,30 +232,30 @@ export default function PrediccionesScreen() {
                     return rows.map(({ m, p, pts }) => {
                       const reacts = aggReactions(item.id, m.uid);
                       return (
-                        <View key={m.uid}>
-                          <Pressable
-                            style={styles.predRow}
-                            onLongPress={() => setReactTarget({ matchId: item.id, uid: m.uid, name: m.displayName })}
-                            onPress={() => setReactTarget({ matchId: item.id, uid: m.uid, name: m.displayName })}
-                          >
-                            <Text style={styles.predName} numberOfLines={1}>{m.displayName}{m.uid === user?.uid ? ' (tú)' : ''}</Text>
+                        <View key={m.uid} style={styles.predRow}>
+                          <View style={styles.predLeft}>
+                            <Pressable onPress={() => setReactTarget({ matchId: item.id, uid: m.uid, name: m.displayName })}>
+                              <Text style={styles.predName} numberOfLines={1}>{m.displayName}{m.uid === user?.uid ? ' (tú)' : ''}</Text>
+                            </Pressable>
+                            {reacts.length > 0 && (
+                              <Pressable style={styles.reactRow} onPress={() => setReactInfo({ matchId: item.id, uid: m.uid, name: m.displayName })}>
+                                {reacts.map(([emoji, count]) => (
+                                  <View key={emoji} style={styles.reactChip}>
+                                    <Text style={styles.reactEmoji}>{emoji}</Text>
+                                    {count > 1 && <Text style={styles.reactCount}>{count}</Text>}
+                                  </View>
+                                ))}
+                              </Pressable>
+                            )}
+                          </View>
+                          <Pressable onPress={() => setReactTarget({ matchId: item.id, uid: m.uid, name: m.displayName })}>
                             <Text style={[styles.predScore, !p && styles.predScoreEmpty]}>
                               {p ? `${p.homeScore} – ${p.awayScore}` : 'Sin predecir'}
                             </Text>
-                            {isFinished && p && (
-                              <View style={[styles.ptsBadge, pts === 5 ? styles.pts5 : pts === 2 ? styles.pts2 : styles.pts0]}>
-                                <Text style={styles.ptsBadgeText}>+{pts}</Text>
-                              </View>
-                            )}
                           </Pressable>
-                          {reacts.length > 0 && (
-                            <View style={styles.reactRow}>
-                              {reacts.map(([emoji, count]) => (
-                                <View key={emoji} style={styles.reactChip}>
-                                  <Text style={styles.reactEmoji}>{emoji}</Text>
-                                  {count > 1 && <Text style={styles.reactCount}>{count}</Text>}
-                                </View>
-                              ))}
+                          {isFinished && p && (
+                            <View style={[styles.ptsBadge, pts === 5 ? styles.pts5 : pts === 2 ? styles.pts2 : styles.pts0]}>
+                              <Text style={styles.ptsBadgeText}>+{pts}</Text>
                             </View>
                           )}
                         </View>
@@ -326,6 +327,21 @@ export default function PrediccionesScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Quién ha reaccionado */}
+      <Modal visible={!!reactInfo} transparent animationType="fade" onRequestClose={() => setReactInfo(null)}>
+        <Pressable style={styles.reactOverlay} onPress={() => setReactInfo(null)}>
+          <View style={styles.reactSheet}>
+            <Text style={styles.reactSheetTitle}>Reacciones a {reactInfo?.name}</Text>
+            {reactInfo && (reactionsByPred[reactionKey(reactInfo.matchId, reactInfo.uid)] ?? []).map((r) => (
+              <View key={r.id} style={styles.whoRow}>
+                <Text style={styles.whoEmoji}>{r.emoji}</Text>
+                <Text style={styles.whoName}>{r.fromUid === user?.uid ? 'Tú' : r.fromName}</Text>
+              </View>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -356,7 +372,7 @@ const styles = StyleSheet.create({
   groupMatchWrap: { marginBottom: T.space.sm },
   predsList: { backgroundColor: T.color.surface, borderRadius: T.radius.card, borderWidth: 1, borderColor: T.color.line, borderTopWidth: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0, marginTop: -8, paddingHorizontal: T.space.md, paddingBottom: T.space.sm, paddingTop: T.space.sm },
   predRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 5, borderTopWidth: 1, borderTopColor: T.color.line },
-  predName: { flex: 1, color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium' },
+  predName: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium' },
   predScore: { color: T.color.accent, fontSize: 13, fontFamily: 'SchibstedGrotesk_700Bold' },
   predScoreEmpty: { color: T.color.ink3, fontFamily: 'HankenGrotesk_400Regular', fontStyle: 'italic' },
   ptsBadge: { marginLeft: T.space.sm, borderRadius: T.radius.chip, paddingHorizontal: 7, paddingVertical: 2, minWidth: 30, alignItems: 'center' },
@@ -364,7 +380,11 @@ const styles = StyleSheet.create({
   pts5: { backgroundColor: '#16a34a' },
   pts2: { backgroundColor: '#d97706' },
   pts0: { backgroundColor: '#dc2626' },
-  reactRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingBottom: 6, paddingLeft: 2 },
+  predLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  reactRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  whoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: T.color.line },
+  whoEmoji: { fontSize: 20 },
+  whoName: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   reactChip: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: T.color.bg, borderRadius: T.radius.chip, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: T.color.line },
   reactEmoji: { fontSize: 13 },
   reactCount: { color: T.color.ink2, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold' },
