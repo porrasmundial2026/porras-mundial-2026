@@ -9,6 +9,7 @@ import { db } from '../../lib/firebase';
 import { MatchCard } from '../../components/MatchCard';
 import { usePredictions } from '../../hooks/usePredictions';
 import { useGroupPredictions } from '../../hooks/useGroupPredictions';
+import { useReactions, reactionKey, toggleReaction } from '../../hooks/useReactions';
 import { useMatchResults } from '../../hooks/useMatchResults';
 import { useGroups } from '../../hooks/useGroup';
 import { useAuth } from '../../contexts/AuthContext';
@@ -74,6 +75,33 @@ export default function PrediccionesScreen() {
   const nameOf        = (uid: string) => selectedGroup?.members.find((m) => m.uid === uid)?.displayName ?? '?';
 
   const { byMatch, loading: loadingGroupPreds } = useGroupPredictions(memberUids);
+  const reactionsByPred = useReactions(viewingGroup ? selectedGroup!.id : null);
+  const [reactTarget, setReactTarget] = useState<{ matchId: string; uid: string; name: string } | null>(null);
+
+  const REACTION_EMOJIS = ['🔥', '😂', '💩', '👑', '🐐', '😱', '🤡', '👏'];
+
+  async function handleReact(emoji: string) {
+    if (!reactTarget || !user || !selectedGroup) return;
+    const t = reactTarget;
+    setReactTarget(null);
+    try {
+      await toggleReaction(
+        selectedGroup.id,
+        t.matchId,
+        { uid: t.uid, name: t.name },
+        { uid: user.uid, name: user.displayName ?? 'Alguien' },
+        emoji,
+      );
+    } catch {}
+  }
+
+  // Agrupa reacciones de una predicción por emoji con su cuenta
+  function aggReactions(matchId: string, targetUid: string) {
+    const list = reactionsByPred[reactionKey(matchId, targetUid)] ?? [];
+    const counts: Record<string, number> = {};
+    for (const r of list) counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
+    return Object.entries(counts); // [emoji, count][]
+  }
 
   const sections = useMemo(() => {
     let filtered = liveMatches.filter((m) => {
@@ -200,22 +228,38 @@ export default function PrediccionesScreen() {
                       return { m, p, pts };
                     });
                     if (isFinished) rows.sort((a, b) => (b.pts ?? -1) - (a.pts ?? -1));
-                    return rows.map(({ m, p, pts }) => (
-                      <View key={m.uid} style={styles.predRow}>
-                        <Text style={styles.predName} numberOfLines={1}>{m.displayName}{m.uid === user?.uid ? ' (tú)' : ''}</Text>
-                        <Text style={[styles.predScore, !p && styles.predScoreEmpty]}>
-                          {p ? `${p.homeScore} – ${p.awayScore}` : 'Sin predecir'}
-                        </Text>
-                        {isFinished && p && (
-                          <View style={[
-                            styles.ptsBadge,
-                            pts === 5 ? styles.pts5 : pts === 2 ? styles.pts2 : styles.pts0,
-                          ]}>
-                            <Text style={styles.ptsBadgeText}>+{pts}</Text>
-                          </View>
-                        )}
-                      </View>
-                    ));
+                    return rows.map(({ m, p, pts }) => {
+                      const reacts = aggReactions(item.id, m.uid);
+                      return (
+                        <View key={m.uid}>
+                          <Pressable
+                            style={styles.predRow}
+                            onLongPress={() => setReactTarget({ matchId: item.id, uid: m.uid, name: m.displayName })}
+                            onPress={() => setReactTarget({ matchId: item.id, uid: m.uid, name: m.displayName })}
+                          >
+                            <Text style={styles.predName} numberOfLines={1}>{m.displayName}{m.uid === user?.uid ? ' (tú)' : ''}</Text>
+                            <Text style={[styles.predScore, !p && styles.predScoreEmpty]}>
+                              {p ? `${p.homeScore} – ${p.awayScore}` : 'Sin predecir'}
+                            </Text>
+                            {isFinished && p && (
+                              <View style={[styles.ptsBadge, pts === 5 ? styles.pts5 : pts === 2 ? styles.pts2 : styles.pts0]}>
+                                <Text style={styles.ptsBadgeText}>+{pts}</Text>
+                              </View>
+                            )}
+                          </Pressable>
+                          {reacts.length > 0 && (
+                            <View style={styles.reactRow}>
+                              {reacts.map(([emoji, count]) => (
+                                <View key={emoji} style={styles.reactChip}>
+                                  <Text style={styles.reactEmoji}>{emoji}</Text>
+                                  {count > 1 && <Text style={styles.reactCount}>{count}</Text>}
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                      );
+                    });
                   })()}
                 </View>
               </View>
@@ -266,6 +310,22 @@ export default function PrediccionesScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Selector de reacción sobre una predicción */}
+      <Modal visible={!!reactTarget} transparent animationType="fade" onRequestClose={() => setReactTarget(null)}>
+        <Pressable style={styles.reactOverlay} onPress={() => setReactTarget(null)}>
+          <View style={styles.reactSheet}>
+            <Text style={styles.reactSheetTitle}>Reaccionar a {reactTarget?.name}</Text>
+            <View style={styles.reactGrid}>
+              {REACTION_EMOJIS.map((e) => (
+                <Pressable key={e} style={styles.reactEmojiBtn} onPress={() => handleReact(e)}>
+                  <Text style={styles.reactEmojiBig}>{e}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -304,6 +364,16 @@ const styles = StyleSheet.create({
   pts5: { backgroundColor: '#16a34a' },
   pts2: { backgroundColor: '#d97706' },
   pts0: { backgroundColor: '#dc2626' },
+  reactRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingBottom: 6, paddingLeft: 2 },
+  reactChip: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: T.color.bg, borderRadius: T.radius.chip, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: T.color.line },
+  reactEmoji: { fontSize: 13 },
+  reactCount: { color: T.color.ink2, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold' },
+  reactOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 32 },
+  reactSheet: { backgroundColor: T.color.surface, borderRadius: 20, padding: 20, width: '100%', maxWidth: 360, gap: 14 },
+  reactSheetTitle: { color: T.color.ink, fontSize: 16, fontFamily: 'SchibstedGrotesk_700Bold', textAlign: 'center' },
+  reactGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
+  reactEmojiBtn: { width: 52, height: 52, borderRadius: 14, backgroundColor: T.color.bg, alignItems: 'center', justifyContent: 'center' },
+  reactEmojiBig: { fontSize: 26 },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
