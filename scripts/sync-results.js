@@ -84,6 +84,16 @@ async function sync() {
 
   console.log(`Partidos activos/finalizados: ${active.length}`);
 
+  // --- DIAGNÓSTICO TEMPORAL: volcar un partido finalizado completo ---
+  const fin0 = matches.find((m) => m.status === 'FINISHED');
+  if (fin0) {
+    console.log(`[TEST RESULTADO] ${fin0.homeTeam?.name} vs ${fin0.awayTeam?.name} [${fin0.status}]`);
+    console.log(`[TEST RESULTADO] score = ${JSON.stringify(fin0.score)}`);
+  } else {
+    console.log('[TEST RESULTADO] No hay ningún partido FINISHED en la respuesta de la API');
+  }
+  // --- FIN DIAGNÓSTICO ---
+
   const batch = db.batch();
 
   for (const match of active) {
