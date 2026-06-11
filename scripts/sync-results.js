@@ -94,6 +94,13 @@ async function sync() {
     const homeScore = match.score?.fullTime?.home ?? match.score?.halfTime?.home ?? null;
     const awayScore = match.score?.fullTime?.away ?? match.score?.halfTime?.away ?? null;
 
+    // No escribimos un resultado sin marcador (evita "FIN" sin resultado).
+    // Si la API marca el partido activo/finalizado pero aún no da el marcador, lo saltamos.
+    if (homeScore === null || awayScore === null) {
+      console.log(`  · ${homeTeam} - ${awayTeam}: sin marcador todavía, se omite`);
+      continue;
+    }
+
     const ref = db.collection('matchResults').doc(pairKey(homeTeam, awayTeam));
 
     batch.set(ref, {

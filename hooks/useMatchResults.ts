@@ -39,9 +39,14 @@ function applyResults(matches: Match[], resultMap: Map<string, MatchResult>): Ma
     let penaltyWinner = r.penaltyWinner;
     if (penaltyWinner && !sameOrder) penaltyWinner = penaltyWinner === 'home' ? 'away' : 'home';
 
+    // Un partido solo se considera finalizado/en vivo si tiene marcador.
+    // Si llega un estado sin marcador, lo dejamos como estaba (próximo).
+    const hasScore = rHome != null && rAway != null;
+    const status = hasScore ? (r.status ?? m.status) : m.status;
+
     return {
       ...m,
-      status: r.status ?? m.status,
+      status,
       homeScore: rHome ?? m.homeScore,
       awayScore: rAway ?? m.awayScore,
       penaltyWinner: penaltyWinner ?? m.penaltyWinner,
