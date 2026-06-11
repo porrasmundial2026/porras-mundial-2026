@@ -2,10 +2,9 @@ name: Sincronizar resultados Mundial 2026
 
 on:
   schedule:
-    # Mundial 2026: 11 junio – 19 julio. Cron en horario UTC.
-    # España = UTC+2, así que esto cubre tardes-madrugadas.
-    - cron: '*/10 15-23 * 6,7 *'   # Tardes/noches de junio y julio
-    - cron: '*/10 0-2 * 6,7 *'      # Madrugadas (partidos en USA)
+    # Mundial 2026: 11 junio – 19 julio. Cada 10 min, TODAS las horas (sin huecos).
+    # GitHub puede retrasar/saltar ejecuciones; el panel admin sirve de respaldo.
+    - cron: '*/10 * * 6,7 *'
   workflow_dispatch:  # Permite lanzarlo manualmente desde GitHub
 
 jobs:
