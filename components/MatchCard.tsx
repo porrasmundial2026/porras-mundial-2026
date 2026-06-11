@@ -8,7 +8,7 @@ import { calculatePoints } from '../lib/scoring';
 interface Props {
   match: Match;
   prediction?: Prediction;
-  onSave: (matchId: string, home: number, away: number) => Promise<void>;
+  onSave: (matchId: string, home: number, away: number, realStart?: number) => Promise<void>;
   readOnly?: boolean;
 }
 
@@ -42,7 +42,7 @@ export function MatchCard({ match, prediction, onSave, readOnly = false }: Props
     if (!homeInput || !awayInput) return;
     setSaving(true);
     try {
-      await onSave(match.id, parseInt(homeInput, 10), parseInt(awayInput, 10));
+      await onSave(match.id, parseInt(homeInput, 10), parseInt(awayInput, 10), new Date(match.scheduledAt).getTime());
       setExpanded(false);
     } catch {
       // offline: Firestore guarda en caché

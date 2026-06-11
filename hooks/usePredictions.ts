@@ -42,14 +42,13 @@ export function usePredictions() {
   );
 
   const savePrediction = useCallback(
-    async (matchId: string, homeScore: number, awayScore: number) => {
+    async (matchId: string, homeScore: number, awayScore: number, realStart?: number) => {
       if (!user) throw new Error('Not authenticated');
 
       const match = MATCH_BY_ID[matchId];
       if (!match) throw new Error('Match not found');
-      if (match.status !== 'upcoming') throw new Error('Partido ya comenzó');
-      // Cierre por hora real de inicio, aunque el status no se haya actualizado
-      if (new Date(match.scheduledAt).getTime() <= Date.now()) {
+      // Cierre por la hora REAL de inicio (la que pasa la tarjeta desde los datos en vivo)
+      if (realStart != null && realStart <= Date.now()) {
         throw new Error('El partido ya ha comenzado');
       }
 
