@@ -95,13 +95,19 @@ async function sync() {
     const awayScore = match.score?.fullTime?.away ?? match.score?.halfTime?.away ?? null;
 
     // No escribimos un resultado sin marcador (evita "FIN" sin resultado).
-    // Si la API marca el partido activo/finalizado pero aún no da el marcador, lo saltamos.
     if (homeScore === null || awayScore === null) {
       console.log(`  · ${homeTeam} - ${awayTeam}: sin marcador todavía, se omite`);
       continue;
     }
 
     const ref = db.collection('matchResults').doc(pairKey(homeTeam, awayTeam));
+
+    // Si el admin ya metió este resultado a mano, NO lo tocamos.
+    const existing = await ref.get();
+    if (existing.exists && existing.data().editedByAdmin === true) {
+      console.log(`  · ${homeTeam} - ${awayTeam}: editado por admin, se respeta`);
+      continue;
+    }
 
     batch.set(ref, {
       homeTeam,
