@@ -84,21 +84,6 @@ async function sync() {
 
   console.log(`Partidos activos/finalizados: ${active.length}`);
 
-  // --- DIAGNÓSTICO TEMPORAL ---
-  const byStatus = {};
-  for (const m of matches) byStatus[m.status] = (byStatus[m.status] ?? 0) + 1;
-  console.log('[TEST] Estados de TODOS los partidos:', JSON.stringify(byStatus));
-
-  // El México-Sudáfrica concreto, tal cual lo manda la API
-  const mx = matches.find((m) => m.id === 537327)
-    || matches.find((m) => (m.homeTeam?.name || '').includes('Mexico') || (m.awayTeam?.name || '').includes('Mexico'));
-  if (mx) {
-    console.log(`[TEST] ${mx.homeTeam?.name} vs ${mx.awayTeam?.name}`);
-    console.log(`[TEST]   status = ${mx.status}  utcDate = ${mx.utcDate}`);
-    console.log(`[TEST]   score  = ${JSON.stringify(mx.score)}`);
-  }
-  // --- FIN DIAGNÓSTICO ---
-
   const batch = db.batch();
 
   for (const match of active) {
