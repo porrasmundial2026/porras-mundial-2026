@@ -41,13 +41,23 @@ export default function ResultadosScreen() {
       if (filter === 'upcoming') return m.status === 'upcoming' || m.status === 'live';
       return true;
     });
-    const byPhase = new Map<string, Match[]>();
-    for (const match of filtered) {
-      const key = PHASE_LABELS[match.phase];
-      if (!byPhase.has(key)) byPhase.set(key, []);
-      byPhase.get(key)!.push(match);
+    // Ordenar por fecha y agrupar por día
+    const sorted = [...filtered].sort((a, b) =>
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+    );
+    const byDay = new Map<string, Match[]>();
+    for (const match of sorted) {
+      const d = new Date(match.scheduledAt);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (!byDay.has(key)) byDay.set(key, []);
+      byDay.get(key)!.push(match);
     }
-    return Array.from(byPhase.entries()).map(([title, data]) => ({ title, data }));
+    return Array.from(byDay.values()).map((data) => {
+      const d = new Date(data[0].scheduledAt);
+      let title = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      title = title.charAt(0).toUpperCase() + title.slice(1);
+      return { title, data };
+    });
   }, [filter, country, liveMatches]);
 
   const standings    = useMemo(() => computeAllStandings(liveMatches), [liveMatches]);

@@ -39,7 +39,7 @@ export default function PrediccionesScreen() {
   const liveMatches = useMatchResults();
   const { groups } = useGroups();
   const [filter, setFilter]       = useState<PhaseFilter>('group');
-  const [sortMode, setSortMode]   = useState<SortMode>('group');
+  const [sortMode, setSortMode]   = useState<SortMode>('date');
   const [onlyEmpty, setOnlyEmpty] = useState(false);
 
   // null = "Mis predicciones"; si no, id del grupo seleccionado
