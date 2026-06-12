@@ -91,8 +91,27 @@ async function sync() {
     const awayTeam = mapTeam(match.awayTeam.name);
     const status = apiStatusToOurs(match.status);
 
-    const homeScore = match.score?.fullTime?.home ?? match.score?.halfTime?.home ?? null;
-    const awayScore = match.score?.fullTime?.away ?? match.score?.halfTime?.away ?? null;
+    // El marcador que puntúa es el de 90/120 min (ignorando la tanda).
+    // OJO: en partidos de penaltis, la API mete en `fullTime` la suma de
+    // tiempo reglamentario + penaltis (ej. 1-1 que acaba 5-3 → fullTime 6-4).
+    // El resultado real está en regularTime + extraTime; los penaltis aparte.
+    const s = match.score ?? {};
+    let homeScore, awayScore, penaltyHome = null, penaltyAway = null;
+    if (s.duration === 'PENALTY_SHOOTOUT') {
+      homeScore = (s.regularTime?.home ?? 0) + (s.extraTime?.home ?? 0);
+      awayScore = (s.regularTime?.away ?? 0) + (s.extraTime?.away ?? 0);
+      penaltyHome = s.penalties?.home ?? null;
+      penaltyAway = s.penalties?.away ?? null;
+    } else {
+      homeScore = s.fullTime?.home ?? s.halfTime?.home ?? null;
+      awayScore = s.fullTime?.away ?? s.halfTime?.away ?? null;
+    }
+
+    // Solo en empate decidido por penaltis: quién ganó la tanda ('home'/'away').
+    // Es el MISMO campo que escribe el admin y que lee la app para el bracket.
+    const penaltyWinner = s.duration === 'PENALTY_SHOOTOUT'
+      ? (s.winner === 'HOME_TEAM' ? 'home' : s.winner === 'AWAY_TEAM' ? 'away' : null)
+      : null;
 
     // No escribimos un resultado sin marcador (evita "FIN" sin resultado).
     if (homeScore === null || awayScore === null) {
@@ -115,11 +134,15 @@ async function sync() {
       homeScore,
       awayScore,
       status,
+      penaltyWinner,                // 'home' | 'away' | null → quién pasa en la tanda
+      penaltyHome,                  // marcador de la tanda (null si no hubo)
+      penaltyAway,
       apiMatchId: match.id,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
 
-    console.log(`  ✓ ${homeTeam} ${homeScore ?? '?'} – ${awayScore ?? '?'} ${awayTeam} [${status}]`);
+    const pens = penaltyHome !== null ? ` (pen ${penaltyHome}-${penaltyAway})` : '';
+    console.log(`  ✓ ${homeTeam} ${homeScore ?? '?'} – ${awayScore ?? '?'} ${awayTeam}${pens} [${status}]`);
   }
 
   await batch.commit();
