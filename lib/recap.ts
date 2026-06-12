@@ -12,6 +12,9 @@ function hashStr(s: string): number {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return h;
 }
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 /**
  * Genera un resumen humorístico de la última jornada con partidos finalizados.
@@ -76,20 +79,33 @@ export function generateDailyRecap(
       `Jornada nefasta: nadie del grupo acertó nada 🤷. ¿Veis el fútbol o jugáis a la lotería?`,
       `Pleno de fallos hoy 🙈. El grupo entero predice mejor el tiempo que los partidos.`,
       `Cero puntos para todos. Día para no hablar del tema en la comida.`,
+      `Hoy ha ganado el fútbol y han perdido todos vuestros pronósticos 😅.`,
+      `Día de humildad: el casillero de puntos se queda a cero para todo el mundo.`,
+      `Ni de casualidad. Hoy el grupo no acertaría ni el día de la semana.`,
+      `Borrón y cuenta nueva, porque lo de hoy mejor lo olvidamos 🫠.`,
     ];
-    return pick(lines, seed);
+    return `📅 ${cap(dateLabel)} — ${pick(lines, seed)}`;
   }
 
   const heroLines = [
     `${best.name} está intratable 🔥 (+${best.pts} pts). Que alguien le baje los humos.`,
     `Día redondo de ${best.name} 🎯 (+${best.pts} pts). El resto, tomando apuntes.`,
-    `${best.name} se ha venido arriba con +${best.pts} pts. Huele a chuleta.`,
+    `${best.name} se ha venido arriba con +${best.pts} pts. Huele a chuleta 🤨.`,
     `${best.name} hoy es el oráculo del grupo (+${best.pts} pts).`,
+    `Manda ${best.name} con +${best.pts} pts. Hoy no le tosía nadie.`,
+    `${best.name} ha hecho los deberes: +${best.pts} pts y a presumir.`,
+    `Recital de ${best.name} hoy (+${best.pts} pts). Empieza a caer mal y todo 😏.`,
+    `+${best.pts} pts para ${best.name}. Alguien ha estado viendo mucho fútbol.`,
+    `${best.name} se sale: +${best.pts} pts. Lo de hoy tiene nombre y apellidos.`,
+    `Bordó la jornada ${best.name} con +${best.pts} pts. Tomad nota, mortales.`,
   ];
   let text = pick(heroLines, seed);
 
   if (best.exact > 0) {
-    text += ` ${best.exact === 1 ? 'Clavó un marcador exacto.' : `Clavó ${best.exact} marcadores exactos.`}`;
+    const exactLines = best.exact === 1
+      ? [`Y encima clavó un marcador exacto.`, `De hecho acertó un resultado al dedillo.`, `Hasta clavó un exacto, el muy chulo.`]
+      : [`Y clavó ${best.exact} marcadores exactos.`, `Acertó ${best.exact} resultados exactos, ahí es nada.`, `${best.exact} exactos en una tarde. De récord.`];
+    text += ` ${pick(exactLines, seed + 2)}`;
   }
 
   // Mención al peor (si es distinto del mejor y se quedó corto)
@@ -98,10 +114,14 @@ export function generateDailyRecap(
       `Mientras, ${worst.name} mejor que no comente nada 😬.`,
       `Jornada para olvidar de ${worst.name} 🙈.`,
       `${worst.name}, en cambio, predijo cosas que solo pasaron en su cabeza.`,
-      `Y a ${worst.name} le ha pasado por encima la jornada.`,
+      `Y a ${worst.name} le ha pasado la jornada por encima como un camión.`,
+      `${worst.name} sigue regalando puntos al resto. Un crack de la generosidad.`,
+      `Lo de ${worst.name} hoy ha sido más de penalti que de quiniela.`,
+      `${worst.name} debería plantearse otra afición que no sea predecir 😅.`,
+      `Pobre ${worst.name}, hoy ni una. El grupo le manda un abrazo.`,
     ];
     text += ` ${pick(loserLines, seed + 1)}`;
   }
 
-  return `📅 ${dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)} — ${text}`;
+  return `📅 ${cap(dateLabel)} — ${text}`;
 }
