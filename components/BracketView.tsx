@@ -65,6 +65,13 @@ function BracketMatchCard({ match }: { match: Match }) {
       <View style={styles.divider} />
       <TeamLine name={match.awayTeam} placeholder={slots?.away} score={match.awayScore} won={awayWon} finished={isFinished} />
       <View style={styles.metaWrap}>
+        {match.penaltyWinner && (
+          <Text style={styles.metaPen} numberOfLines={1}>
+            {match.penaltyHome != null && match.penaltyAway != null
+              ? `Pen. ${match.penaltyHome}–${match.penaltyAway}`
+              : 'Decidido en penaltis'}
+          </Text>
+        )}
         <Text style={styles.meta} numberOfLines={1}>{dateStr}</Text>
         {match.venue && match.venue !== 'Por confirmar' && (
           <Text style={styles.metaVenue} numberOfLines={1}>{match.venue}</Text>
@@ -105,5 +112,6 @@ const styles = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: C.separator, marginVertical: 1 },
   metaWrap: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.separator, marginTop: 4, paddingTop: 4, gap: 1 },
   meta: { color: C.textSecondary, fontSize: 10, fontWeight: '700' },
+  metaPen: { color: C.accent, fontSize: 9, fontWeight: '800' },
   metaVenue: { color: C.textTertiary, fontSize: 9 },
 });

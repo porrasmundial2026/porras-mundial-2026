@@ -204,6 +204,13 @@ function ResultCard({ match }: { match: Match }) {
             : isFinished
               ? <Text style={styles.finText}>FIN</Text>
               : <Text style={styles.dateSub}>{dateStr}</Text>}
+          {isFinished && match.penaltyWinner && (
+            <Text style={styles.penText} numberOfLines={1}>
+              {match.penaltyHome != null && match.penaltyAway != null
+                ? `Pen. ${match.penaltyHome}–${match.penaltyAway}`
+                : 'Penaltis'}
+            </Text>
+          )}
         </View>
         <View style={[styles.teamSide, styles.teamSideRight]}>
           <Flag team={match.awayTeam} size={32} />
@@ -254,6 +261,7 @@ const styles = StyleSheet.create({
   score:       { color: T.color.ink, fontSize: 22, fontFamily: 'SchibstedGrotesk_700Bold' },
   scoreFinal:  { color: T.color.good },
   scoreLive:   { color: T.color.danger },
+  penText:     { color: T.color.ink2, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold' },
   timeLarge:   { color: T.color.ink, fontSize: 18, fontFamily: 'SchibstedGrotesk_700Bold' },
   finText:     { color: T.color.ink3, fontSize: 10, fontFamily: 'HankenGrotesk_500Medium', letterSpacing: 0.8 },
   dateSub:     { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_500Medium' },
