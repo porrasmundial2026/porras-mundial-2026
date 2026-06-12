@@ -137,6 +137,15 @@ async function sync() {
       scheduledAt: match.utcDate, // ISO string con la hora real
     }, { merge: true });
     timeCount++;
+
+    // Colección 'matches' por matchId con la hora como Timestamp:
+    // sirve para que las REGLAS de Firestore cierren la predicción en el servidor.
+    const matchId = MATCH_ID_MAP[pairKey(homeTeam, awayTeam)];
+    if (matchId) {
+      timeBatch.set(db.collection('matches').doc(matchId), {
+        scheduledAt: admin.firestore.Timestamp.fromDate(new Date(match.utcDate)),
+      }, { merge: true });
+    }
   }
   await timeBatch.commit();
   console.log(`Horas de inicio guardadas: ${timeCount}`);
