@@ -27,7 +27,7 @@ export function Podium({ top3, currentUserId }: Props) {
               <Text style={styles.avatarText}>{entry.displayName.charAt(0).toUpperCase()}</Text>
             </View>
             <Text style={styles.name} numberOfLines={1}>{entry.displayName}{isMe ? ' (tú)' : ''}</Text>
-            <View style={[styles.bar, isFirst ? styles.barFirst : styles.barRest, { height: PODIUM_H[position] }]}>
+            <View style={[styles.bar, styles[`bar${position}`], { height: PODIUM_H[position] }]}>
               <Text style={styles.posLabel}>{position}º</Text>
               <Text style={styles.pts}>{entry.totalPoints}</Text>
             </View>
@@ -55,8 +55,9 @@ const styles = StyleSheet.create({
   avatarText:  { color: T.color.ink, fontSize: 20, fontFamily: 'SchibstedGrotesk_700Bold' },
   name:        { color: T.color.ink, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold', maxWidth: '100%' },
   bar:         { width: '100%', borderTopLeftRadius: 8, borderTopRightRadius: 8, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  barFirst:    { backgroundColor: T.color.accent },
-  barRest:     { backgroundColor: T.color.line },
-  posLabel:    { color: '#fff', fontSize: 11, fontFamily: 'HankenGrotesk_700Bold', opacity: 0.8 },
+  bar1:        { backgroundColor: T.color.accent },   // 1º verde fuerte
+  bar2:        { backgroundColor: '#4A9D78' },         // 2º verde medio
+  bar3:        { backgroundColor: '#86C2A6' },         // 3º verde claro
+  posLabel:    { color: '#fff', fontSize: 11, fontFamily: 'HankenGrotesk_700Bold', opacity: 0.85 },
   pts:         { color: '#fff', fontSize: 20, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
 });
