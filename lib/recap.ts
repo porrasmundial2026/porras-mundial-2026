@@ -83,6 +83,13 @@ export function generateDailyRecap(
       `Día de humildad: el casillero de puntos se queda a cero para todo el mundo.`,
       `Ni de casualidad. Hoy el grupo no acertaría ni el día de la semana.`,
       `Borrón y cuenta nueva, porque lo de hoy mejor lo olvidamos 🫠.`,
+      `Cero patatero para toda la peña. El fútbol os ha humillado a todos por igual.`,
+      `Hoy habéis fallado más que una escopeta de feria 🎯❌.`,
+      `Nadie suma. A este paso gana la porra el que menos sepa de fútbol.`,
+      `Jornada de empate técnico: todos a cero, todos igual de perdidos.`,
+      `Ni con la bola de cristal. Hoy el grupo no daba una.`,
+      `El marcador de puntos hoy parece la temperatura de Siberia: bajo cero para todos ❄️.`,
+      `Día para invitar a una ronda y que se olvide lo que ha pasado aquí.`,
     ];
     return `📅 ${cap(dateLabel)} — ${pick(lines, seed)}`;
   }
@@ -98,13 +105,37 @@ export function generateDailyRecap(
     `+${best.pts} pts para ${best.name}. Alguien ha estado viendo mucho fútbol.`,
     `${best.name} se sale: +${best.pts} pts. Lo de hoy tiene nombre y apellidos.`,
     `Bordó la jornada ${best.name} con +${best.pts} pts. Tomad nota, mortales.`,
+    `${best.name} en modo máquina: +${best.pts} pts. ¿Pacto con el diablo? 😈`,
+    `Hoy el patio es de ${best.name} (+${best.pts} pts). Que disfrute, que mañana se cae.`,
+    `${best.name} firma +${best.pts} pts y se va a dormir tranquilo. El resto, rumiando.`,
+    `Clase magistral de ${best.name}: +${best.pts} pts. Cobrad entrada la próxima.`,
+    `${best.name} arrasó hoy con +${best.pts} pts. Empezad a temerle 😎.`,
+    `+${best.pts} pts y liderato moral para ${best.name}. Insoportable va a estar.`,
+    `${best.name} la lió: +${best.pts} pts. Hoy adivina hasta lo que cenáis.`,
+    `Pleno de acierto para ${best.name} (+${best.pts} pts). Sospechoso, muy sospechoso 🕵️.`,
+    `${best.name} no falla: +${best.pts} pts. ¿Seguro que no tienes un primo en la FIFA?`,
+    `Día de gloria de ${best.name} con +${best.pts} pts. Que alguien le pinche el globo.`,
   ];
   let text = pick(heroLines, seed);
 
   if (best.exact > 0) {
     const exactLines = best.exact === 1
-      ? [`Y encima clavó un marcador exacto.`, `De hecho acertó un resultado al dedillo.`, `Hasta clavó un exacto, el muy chulo.`]
-      : [`Y clavó ${best.exact} marcadores exactos.`, `Acertó ${best.exact} resultados exactos, ahí es nada.`, `${best.exact} exactos en una tarde. De récord.`];
+      ? [
+          `Y encima clavó un marcador exacto.`,
+          `De hecho acertó un resultado al dedillo.`,
+          `Hasta clavó un exacto, el muy chulo.`,
+          `Y bordó un marcador clavado, por si fuera poco.`,
+          `Incluso le acertó el resultado exacto a un partido. Tela.`,
+          `Y de regalo, un exacto que deja en evidencia a todos.`,
+        ]
+      : [
+          `Y clavó ${best.exact} marcadores exactos.`,
+          `Acertó ${best.exact} resultados exactos, ahí es nada.`,
+          `${best.exact} exactos en una tarde. De récord.`,
+          `Y se sacó ${best.exact} marcadores clavados de la chistera 🎩.`,
+          `Con ${best.exact} exactos incluidos. ¿Pero esto es legal?`,
+          `${best.exact} resultados al dedillo. Para enmarcarlo.`,
+        ];
     text += ` ${pick(exactLines, seed + 2)}`;
   }
 
@@ -119,6 +150,14 @@ export function generateDailyRecap(
       `Lo de ${worst.name} hoy ha sido más de penalti que de quiniela.`,
       `${worst.name} debería plantearse otra afición que no sea predecir 😅.`,
       `Pobre ${worst.name}, hoy ni una. El grupo le manda un abrazo.`,
+      `${worst.name} firma una jornada de las de tirar el móvil al sofá.`,
+      `A ${worst.name} le ha salido todo al revés. Hasta el café de la mañana.`,
+      `${worst.name} predijo con el corazón y el corazón le ha traicionado 💔.`,
+      `Día de barro para ${worst.name}. Mejor cambiamos de tema.`,
+      `${worst.name} va camino de pagar la cena de todos a este ritmo 🍽️.`,
+      `Lo de ${worst.name} hoy no es mala suerte, es… arte abstracto.`,
+      `${worst.name} sigue demostrando que el fútbol es impredecible. Sobre todo para él.`,
+      `Y ${worst.name}, como siempre, poniendo la nota cómica de la jornada 🤡.`,
     ];
     text += ` ${pick(loserLines, seed + 1)}`;
   }
