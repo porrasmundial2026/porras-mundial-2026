@@ -12,6 +12,8 @@ interface MatchResult {
   awayScore: number | null;
   status: 'upcoming' | 'live' | 'finished';
   penaltyWinner?: 'home' | 'away';
+  penaltyHome?: number;
+  penaltyAway?: number;
   scheduledAt?: string; // hora de inicio real (ISO) desde la API
 }
 
@@ -38,6 +40,8 @@ function applyResults(matches: Match[], resultMap: Map<string, MatchResult>): Ma
     const rAway = sameOrder ? r.awayScore : r.homeScore;
     let penaltyWinner = r.penaltyWinner;
     if (penaltyWinner && !sameOrder) penaltyWinner = penaltyWinner === 'home' ? 'away' : 'home';
+    const penHome = sameOrder ? r.penaltyHome : r.penaltyAway;
+    const penAway = sameOrder ? r.penaltyAway : r.penaltyHome;
 
     // Un partido solo se considera finalizado/en vivo si tiene marcador.
     // Si llega un estado sin marcador, lo dejamos como estaba (próximo).
@@ -50,6 +54,8 @@ function applyResults(matches: Match[], resultMap: Map<string, MatchResult>): Ma
       homeScore: rHome ?? m.homeScore,
       awayScore: rAway ?? m.awayScore,
       penaltyWinner: penaltyWinner ?? m.penaltyWinner,
+      penaltyHome: penHome ?? m.penaltyHome,
+      penaltyAway: penAway ?? m.penaltyAway,
       scheduledAt: r.scheduledAt ? new Date(r.scheduledAt) : m.scheduledAt,
     };
   });

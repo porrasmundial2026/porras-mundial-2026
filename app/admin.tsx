@@ -382,13 +382,26 @@ function AdminMatchRow({ match }: { match: Match }) {
   const [away, setAway] = useState(match.awayScore?.toString() ?? '');
   const [saving, setSaving] = useState(false);
   const [penaltyWinner, setPenaltyWinner] = useState<'home' | 'away' | undefined>(match.penaltyWinner);
+  const [penHome, setPenHome] = useState(match.penaltyHome?.toString() ?? '');
+  const [penAway, setPenAway] = useState(match.penaltyAway?.toString() ?? '');
 
   // Sincronizar inputs cuando llegan los datos de Firestore
   useEffect(() => {
     if (match.homeScore !== undefined) setHome(match.homeScore.toString());
     if (match.awayScore !== undefined) setAway(match.awayScore.toString());
     setPenaltyWinner(match.penaltyWinner);
-  }, [match.homeScore, match.awayScore, match.penaltyWinner]);
+    setPenHome(match.penaltyHome?.toString() ?? '');
+    setPenAway(match.penaltyAway?.toString() ?? '');
+  }, [match.homeScore, match.awayScore, match.penaltyWinner, match.penaltyHome, match.penaltyAway]);
+
+  // Si meto el marcador de la tanda, deduzco solo quién pasó
+  useEffect(() => {
+    const ph = parseInt(penHome, 10);
+    const pa = parseInt(penAway, 10);
+    if (Number.isInteger(ph) && Number.isInteger(pa) && ph !== pa) {
+      setPenaltyWinner(ph > pa ? 'home' : 'away');
+    }
+  }, [penHome, penAway]);
 
   const valid = /^\d{1,2}$/.test(home) && /^\d{1,2}$/.test(away);
   const isKnockout = match.phase !== 'group';
@@ -416,6 +429,8 @@ function AdminMatchRow({ match }: { match: Match }) {
         awayScore: awayScoreInt,
         status,
         penaltyWinner: isDraw ? (penaltyWinner ?? null) : null,
+        penaltyHome: isDraw && /^\d{1,2}$/.test(penHome) ? parseInt(penHome, 10) : null,
+        penaltyAway: isDraw && /^\d{1,2}$/.test(penAway) ? parseInt(penAway, 10) : null,
         updatedAt: serverTimestamp(),
         editedByAdmin: true,
       }, { merge: true });
@@ -491,6 +506,12 @@ function AdminMatchRow({ match }: { match: Match }) {
                 {match.awayTeam}
               </Text>
             </Pressable>
+          </View>
+          <Text style={styles.penaltyLabel}>Marcador de la tanda (opcional)</Text>
+          <View style={styles.inputs}>
+            <TextInput style={styles.input} value={penHome} onChangeText={setPenHome} keyboardType="number-pad" maxLength={2} placeholder="-" placeholderTextColor={C.textTertiary} selectTextOnFocus />
+            <Text style={styles.dash}>–</Text>
+            <TextInput style={styles.input} value={penAway} onChangeText={setPenAway} keyboardType="number-pad" maxLength={2} placeholder="-" placeholderTextColor={C.textTertiary} selectTextOnFocus />
           </View>
         </View>
       )}

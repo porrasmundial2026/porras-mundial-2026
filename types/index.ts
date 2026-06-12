@@ -14,6 +14,9 @@ export interface Match {
   awayScore?: number;
   /** En eliminatoria, quién ganó en la tanda de penaltis (si hubo empate). */
   penaltyWinner?: 'home' | 'away';
+  /** Marcador de la tanda de penaltis (opcional, solo informativo). */
+  penaltyHome?: number;
+  penaltyAway?: number;
 }
 
 export interface Prediction {
