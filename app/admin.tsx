@@ -420,29 +420,9 @@ function AdminMatchRow({ match }: { match: Match }) {
         editedByAdmin: true,
       }, { merge: true });
 
-      // Si el partido finaliza, recalcular puntos de todas las predicciones
-      if (status === 'finished') {
-        const matchObj = ALL_MATCHES.find(
-          (m) => m.homeTeam === match.homeTeam && m.awayTeam === match.awayTeam
-        );
-        if (matchObj) {
-          const predsSnap = await getDocs(
-            query(collection(db, 'predictions'), where('matchId', '==', matchObj.id))
-          );
-          if (!predsSnap.empty) {
-            const batch = writeBatch(db);
-            predsSnap.docs.forEach((d) => {
-              const pred = d.data();
-              const points = calculatePoints(
-                { homeScore: pred.homeScore, awayScore: pred.awayScore },
-                { homeScore: homeScoreInt, awayScore: awayScoreInt }
-              );
-              batch.update(d.ref, { points });
-            });
-            await batch.commit();
-          }
-        }
-      }
+      // Los puntos se calculan en tiempo real en ranking/perfil/tarjetas desde el
+      // resultado, así que NO hace falta escribir 'points' en cada predicción
+      // (además las reglas no dejan al admin tocar predicciones de otros).
 
       Alert.alert('Guardado', `${match.homeTeam} ${home}–${away} ${match.awayTeam}${isDraw && penaltyWinner ? ` (pen. ${penaltyWinner === 'home' ? match.homeTeam : match.awayTeam})` : ''}`);
     } catch (e) {
