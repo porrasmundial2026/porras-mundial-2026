@@ -185,11 +185,11 @@ export default function PrediccionesScreen() {
         {/* Ordenación */}
         {filter === 'group' && (
           <View style={styles.filters}>
-            <Pressable style={[styles.chip, sortMode === 'group' && styles.chipActive]} onPress={() => setSortMode('group')}>
-              <Text style={[styles.chipText, sortMode === 'group' && styles.chipTextActive]}>Por grupo</Text>
-            </Pressable>
             <Pressable style={[styles.chip, sortMode === 'date' && styles.chipActive]} onPress={() => setSortMode('date')}>
               <Text style={[styles.chipText, sortMode === 'date' && styles.chipTextActive]}>Por fecha</Text>
+            </Pressable>
+            <Pressable style={[styles.chip, sortMode === 'group' && styles.chipActive]} onPress={() => setSortMode('group')}>
+              <Text style={[styles.chipText, sortMode === 'group' && styles.chipTextActive]}>Por grupo</Text>
             </Pressable>
           </View>
         )}
