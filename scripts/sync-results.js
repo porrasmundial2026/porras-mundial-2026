@@ -156,16 +156,8 @@ async function sync() {
     console.log('✓ Todos los equipos mapeados correctamente');
   }
 
-  // Recalcular puntos de predicciones para partidos finalizados
-  const finished = active.filter((m) => m.status === 'FINISHED');
-  for (const match of finished) {
-    const homeTeam = mapTeam(match.homeTeam.name);
-    const awayTeam = mapTeam(match.awayTeam.name);
-    const homeScore = match.score?.fullTime?.home ?? null;
-    const awayScore = match.score?.fullTime?.away ?? null;
-    const matchId = MATCH_ID_MAP[pairKey(homeTeam, awayTeam)];
-    await updatePredictionPoints(matchId, homeScore, awayScore);
-  }
+  // Los puntos se calculan en tiempo real en la app (ranking, perfil, tarjetas)
+  // a partir del resultado, no se guardan dentro de las predicciones.
 
   console.log('Sincronización completada.');
 }
