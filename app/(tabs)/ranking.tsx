@@ -11,6 +11,7 @@ import { RankingItem } from '../../components/RankingItem';
 import { Podium } from '../../components/Podium';
 import { buildRanking, calculatePoints } from '../../lib/scoring';
 import { generateDailyRecap } from '../../lib/recap';
+import { trackScreen } from '../../lib/analytics';
 import { FLAG } from '../../constants/flags';
 import { Group, Prediction, RankingEntry, UserProfile } from '../../types';
 import { T } from '../../constants/theme';
@@ -98,6 +99,8 @@ export default function RankingScreen() {
   }, [groups]);
 
   // Carga de datos de Firestore: solo cuando cambia el grupo seleccionado
+  useFocusEffect(useCallback(() => { trackScreen('Ranking'); }, []));
+
   useFocusEffect(useCallback(() => {
     if (!selectedGroup) return;
     setLoadingRanking(true);

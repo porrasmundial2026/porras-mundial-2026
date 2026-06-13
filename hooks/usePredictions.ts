@@ -13,6 +13,7 @@ import { Prediction } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { calculatePoints } from '../lib/scoring';
 import { MATCH_BY_ID } from '../constants/matches';
+import { track } from '../lib/analytics';
 
 export function usePredictions() {
   const { user } = useAuth();
@@ -70,6 +71,8 @@ export function usePredictions() {
         },
         { merge: true }
       );
+
+      track('prediction_saved', { matchId });
     },
     [user]
   );

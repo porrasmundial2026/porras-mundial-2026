@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, SectionList, FlatList, StyleSheet, Pressable, Modal } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { trackScreen } from '../../lib/analytics';
 import { PHASE_LABELS, GROUPS } from '../../constants/matches';
 import { useMatchResults } from '../../hooks/useMatchResults';
 import { Flag } from '../../components/Flag';
@@ -33,6 +35,8 @@ export default function ResultadosScreen() {
   const [filter, setFilter] = useState<Filter>('upcoming');
   const [country, setCountry] = useState<string | null>(null);
   const [countryModal, setCountryModal] = useState(false);
+
+  useFocusEffect(useCallback(() => { trackScreen('Resultados'); }, []));
 
   const sections = useMemo(() => {
     const filtered = liveMatches.filter((m) => {

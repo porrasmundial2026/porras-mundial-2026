@@ -15,6 +15,7 @@ import { useGroups } from '../../hooks/useGroup';
 import { useAuth } from '../../contexts/AuthContext';
 import { PHASE_LABELS, GROUPS } from '../../constants/matches';
 import { calculatePoints } from '../../lib/scoring';
+import { trackScreen } from '../../lib/analytics';
 import { Match, UserProfile } from '../../types';
 import { T } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,6 +50,8 @@ export default function PrediccionesScreen() {
   const [loadingMembers, setLoadingMembers] = useState(false);
 
   // Cargar info (nombres de miembros) de cada grupo del usuario
+  useFocusEffect(useCallback(() => { trackScreen('Predicciones'); }, []));
+
   useFocusEffect(useCallback(() => {
     if (!groups.length || !user) { setGroupInfos([]); return; }
     setLoadingMembers(true);
