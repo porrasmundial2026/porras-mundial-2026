@@ -116,7 +116,12 @@ export default function PrediccionesScreen() {
     });
 
     if (onlyUpcoming) {
-      filtered = filtered.filter((m) => m.status === 'upcoming');
+      // Desde el inicio de AYER en adelante: oculta lo antiguo pero deja ver
+      // lo reciente (partidos de ayer, de hoy y los futuros).
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 1);
+      cutoff.setHours(0, 0, 0, 0);
+      filtered = filtered.filter((m) => new Date(m.scheduledAt).getTime() >= cutoff.getTime());
     }
 
     if (onlyEmpty && !viewingGroup) {
