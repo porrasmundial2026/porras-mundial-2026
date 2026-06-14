@@ -1,17 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { RankingEntry } from '../types';
 import { T } from '../constants/theme';
 
 interface Props {
   top3: RankingEntry[];
   currentUserId?: string;
+  onPressUser?: (userId: string) => void;
 }
 
 const PODIUM_H = { 1: 88, 2: 68, 3: 56 };
 const ORDER    = [1, 0, 2]; // visual: 2º - 1º - 3º
 
-export function Podium({ top3, currentUserId }: Props) {
+export function Podium({ top3, currentUserId, onPressUser }: Props) {
   return (
     <View style={styles.wrap}>
       {ORDER.map((idx) => {
@@ -22,7 +23,7 @@ export function Podium({ top3, currentUserId }: Props) {
         const isFirst  = position === 1;
 
         return (
-          <View key={entry.userId} style={styles.col}>
+          <Pressable key={entry.userId} style={styles.col} onPress={() => onPressUser?.(entry.userId)}>
             <View style={[styles.avatar, isMe && styles.avatarMe, isFirst && styles.avatarFirst]}>
               <Text style={styles.avatarText}>{entry.displayName.charAt(0).toUpperCase()}</Text>
             </View>
@@ -31,7 +32,7 @@ export function Podium({ top3, currentUserId }: Props) {
               <Text style={styles.posLabel}>{position}º</Text>
               <Text style={styles.pts}>{entry.totalPoints}</Text>
             </View>
-          </View>
+          </Pressable>
         );
       })}
     </View>

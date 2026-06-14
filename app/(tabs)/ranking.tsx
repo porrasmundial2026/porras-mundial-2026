@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, Platform, Modal, ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
@@ -13,7 +13,7 @@ import { buildRanking, calculatePoints } from '../../lib/scoring';
 import { generateDailyRecap } from '../../lib/recap';
 import { trackScreen } from '../../lib/analytics';
 import { FLAG } from '../../constants/flags';
-import { Group, Prediction, RankingEntry, UserProfile } from '../../types';
+import { Group, Match, Prediction, RankingEntry, UserProfile } from '../../types';
 import { T } from '../../constants/theme';
 import { useMatchResults } from '../../hooks/useMatchResults';
 
@@ -45,8 +45,26 @@ export default function RankingScreen() {
   }
   const [members, setMembers] = useState<{ userId: string; displayName: string; photoURL: string | null }[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const finishedMatches = useMemo(() => liveMatches.filter((m) => m.status === 'finished'), [liveMatches]);
+
+  // Detalle del usuario pulsado: sus predicciones de partidos ya jugados,
+  // con el resultado real y los puntos conseguidos (más reciente primero).
+  const detailUser = useMemo(() => {
+    if (!selectedUserId) return null;
+    const name = members.find((m) => m.userId === selectedUserId)?.displayName ?? '?';
+    const rows = finishedMatches
+      .map((m) => {
+        const pred = predictions.find((p) => p.userId === selectedUserId && p.matchId === m.id);
+        if (!pred) return null;
+        return { match: m, pred, pts: calculatePoints(pred, m) };
+      })
+      .filter((r): r is { match: Match; pred: Prediction; pts: number } => r !== null)
+      .sort((a, b) => new Date(b.match.scheduledAt).getTime() - new Date(a.match.scheduledAt).getTime());
+    const total = rows.reduce((s, r) => s + r.pts, 0);
+    return { name, rows, total };
+  }, [selectedUserId, members, predictions, finishedMatches]);
 
   const recap = useMemo(
     () => generateDailyRecap(members, predictions, finishedMatches),
@@ -248,12 +266,12 @@ export default function RankingScreen() {
                   )}
                 </View>
               )}
-              {ranking.length > 0 && <Podium top3={ranking.slice(0, 3)} currentUserId={user?.uid} />}
+              {ranking.length > 0 && <Podium top3={ranking.slice(0, 3)} currentUserId={user?.uid} onPressUser={setSelectedUserId} />}
               {ranking.length > 3 && <Text style={styles.statsSectionTitle}>Clasificación</Text>}
             </>
           }
           renderItem={({ item, index }) => (
-            <RankingItem entry={item} position={index + 4} isCurrentUser={item.userId === user?.uid} />
+            <RankingItem entry={item} position={index + 4} isCurrentUser={item.userId === user?.uid} onPress={() => setSelectedUserId(item.userId)} />
           )}
         />
       )}
@@ -276,6 +294,47 @@ export default function RankingScreen() {
           </View>
         </ViewShot>
       </View>
+
+      {/* Popup con las predicciones del usuario pulsado */}
+      <Modal
+        visible={!!selectedUserId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedUserId(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setSelectedUserId(null)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>{detailUser?.name}</Text>
+            <Text style={styles.modalSub}>{detailUser?.total ?? 0} pts en partidos jugados</Text>
+
+            {detailUser && detailUser.rows.length > 0 ? (
+              <ScrollView style={{ maxHeight: 380, marginTop: T.space.sm }} contentContainerStyle={{ gap: 8 }}>
+                {detailUser.rows.map((r) => (
+                  <View key={r.match.id} style={styles.predRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.predTeams} numberOfLines={1}>
+                        {FLAG[r.match.homeTeam]} {r.match.homeTeam} – {r.match.awayTeam} {FLAG[r.match.awayTeam]}
+                      </Text>
+                      <Text style={styles.predDetail}>
+                        Real {r.match.homeScore}–{r.match.awayScore} · Predijo {r.pred.homeScore}–{r.pred.awayScore}
+                      </Text>
+                    </View>
+                    <Text style={[styles.predPts, r.pts === 5 && styles.predPtsExact, r.pts === 0 && styles.predPtsZero]}>
+                      +{r.pts}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={styles.modalEmpty}>Aún no hay partidos jugados con predicción suya.</Text>
+            )}
+
+            <Pressable style={styles.closeBtn} onPress={() => setSelectedUserId(null)}>
+              <Text style={styles.closeBtnText}>Cerrar</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -320,4 +379,17 @@ const styles = StyleSheet.create({
   emptyEmoji:{ fontSize: 48 },
   emptyTitle:{ color: T.color.ink, fontSize: 18, fontFamily: 'HankenGrotesk_700Bold' },
   emptySub:  { color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', lineHeight: 22 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: T.space.xl },
+  modalCard: { width: '100%', maxWidth: 480, backgroundColor: T.color.surface, borderRadius: T.radius.card, padding: T.space.lg },
+  modalTitle: { color: T.color.ink, fontSize: 20, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
+  modalSub: { color: T.color.accent, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
+  predRow: { flexDirection: 'row', alignItems: 'center', gap: T.space.sm, backgroundColor: T.color.bg, borderRadius: T.radius.chip, paddingVertical: 8, paddingHorizontal: 10 },
+  predTeams: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
+  predDetail: { color: T.color.ink2, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', marginTop: 2 },
+  predPts: { color: T.color.ink2, fontSize: 16, fontFamily: 'SchibstedGrotesk_700Bold', minWidth: 32, textAlign: 'right' },
+  predPtsExact: { color: T.color.good },
+  predPtsZero: { color: T.color.ink3 },
+  modalEmpty: { color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', paddingVertical: T.space.lg },
+  closeBtn: { marginTop: T.space.md, backgroundColor: T.color.accent, borderRadius: T.radius.chip, paddingVertical: 12, alignItems: 'center' },
+  closeBtnText: { color: '#fff', fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
 });

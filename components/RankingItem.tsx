@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { RankingEntry } from '../types';
 import { T } from '../constants/theme';
 
@@ -7,11 +7,12 @@ interface Props {
   entry: RankingEntry;
   position: number;
   isCurrentUser: boolean;
+  onPress?: () => void;
 }
 
-export function RankingItem({ entry, position, isCurrentUser }: Props) {
+export function RankingItem({ entry, position, isCurrentUser, onPress }: Props) {
   return (
-    <View style={[styles.row, isCurrentUser && styles.rowHighlight]}>
+    <Pressable style={[styles.row, isCurrentUser && styles.rowHighlight]} onPress={onPress}>
       <Text style={styles.pos}>{position}</Text>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{entry.displayName.charAt(0).toUpperCase()}</Text>
@@ -25,7 +26,7 @@ export function RankingItem({ entry, position, isCurrentUser }: Props) {
         </Text>
       </View>
       <Text style={styles.points}>{entry.totalPoints}</Text>
-    </View>
+    </Pressable>
   );
 }
 
