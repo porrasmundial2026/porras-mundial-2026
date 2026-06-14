@@ -303,13 +303,19 @@ export default function RankingScreen() {
         animationType="fade"
         onRequestClose={() => setSelectedUserId(null)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setSelectedUserId(null)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedUserId(null)} />
+          <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{detailUser?.name}</Text>
             <Text style={styles.modalSub}>{detailUser?.total ?? 0} pts en partidos jugados</Text>
 
             {detailUser && detailUser.rows.length > 0 ? (
-              <ScrollView style={{ maxHeight: 380, marginTop: T.space.sm }} contentContainerStyle={{ gap: 8 }}>
+              <ScrollView
+                style={{ maxHeight: 380, marginTop: T.space.sm }}
+                contentContainerStyle={{ gap: 8 }}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+              >
                 {detailUser.rows.map((r) => (
                   <View key={r.match.id} style={styles.predRow}>
                     <View style={{ flex: 1 }}>
@@ -335,8 +341,8 @@ export default function RankingScreen() {
             <Pressable style={styles.closeBtn} onPress={() => setSelectedUserId(null)}>
               <Text style={styles.closeBtnText}>Cerrar</Text>
             </Pressable>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
