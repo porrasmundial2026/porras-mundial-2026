@@ -9,6 +9,7 @@ import { useGroups } from '../../hooks/useGroup';
 import { useAuth } from '../../contexts/AuthContext';
 import { RankingItem } from '../../components/RankingItem';
 import { Podium } from '../../components/Podium';
+import { Flag } from '../../components/Flag';
 import { buildRanking, calculatePoints } from '../../lib/scoring';
 import { generateDailyRecap } from '../../lib/recap';
 import { trackScreen } from '../../lib/analytics';
@@ -312,9 +313,11 @@ export default function RankingScreen() {
                 {detailUser.rows.map((r) => (
                   <View key={r.match.id} style={styles.predRow}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.predTeams} numberOfLines={1}>
-                        {FLAG[r.match.homeTeam]} {r.match.homeTeam} – {r.match.awayTeam} {FLAG[r.match.awayTeam]}
-                      </Text>
+                      <View style={styles.predTeamsRow}>
+                        <Flag team={r.match.homeTeam} size={16} />
+                        <Text style={styles.predTeams} numberOfLines={1}>{r.match.homeTeam} – {r.match.awayTeam}</Text>
+                        <Flag team={r.match.awayTeam} size={16} />
+                      </View>
                       <Text style={styles.predDetail}>
                         Real {r.match.homeScore}–{r.match.awayScore} · Predijo {r.pred.homeScore}–{r.pred.awayScore}
                       </Text>
@@ -384,7 +387,8 @@ const styles = StyleSheet.create({
   modalTitle: { color: T.color.ink, fontSize: 20, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
   modalSub: { color: T.color.accent, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
   predRow: { flexDirection: 'row', alignItems: 'center', gap: T.space.sm, backgroundColor: T.color.bg, borderRadius: T.radius.chip, paddingVertical: 8, paddingHorizontal: 10 },
-  predTeams: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
+  predTeamsRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  predTeams: { flex: 1, color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
   predDetail: { color: T.color.ink2, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', marginTop: 2 },
   predPts: { color: T.color.ink2, fontSize: 16, fontFamily: 'SchibstedGrotesk_700Bold', minWidth: 32, textAlign: 'right' },
   predPtsExact: { color: T.color.good },
