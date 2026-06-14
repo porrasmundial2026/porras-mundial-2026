@@ -316,6 +316,7 @@ export default function RankingScreen() {
                       <View style={styles.predTeamsRow}>
                         <Flag team={r.match.homeTeam} size={16} />
                         <Text style={styles.predTeams} numberOfLines={1}>{r.match.homeTeam} – {r.match.awayTeam}</Text>
+                        <Flag team={r.match.awayTeam} size={16} />
                       </View>
                       <Text style={styles.predDetail}>
                         Real {r.match.homeScore}–{r.match.awayScore} · Predijo {r.pred.homeScore}–{r.pred.awayScore}
@@ -387,7 +388,7 @@ const styles = StyleSheet.create({
   modalSub: { color: T.color.accent, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
   predRow: { flexDirection: 'row', alignItems: 'center', gap: T.space.sm, backgroundColor: T.color.bg, borderRadius: T.radius.chip, paddingVertical: 8, paddingHorizontal: 10 },
   predTeamsRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  predTeams: { flex: 1, color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
+  predTeams: { flexShrink: 1, color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold' },
   predDetail: { color: T.color.ink2, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', marginTop: 2 },
   predPts: { color: T.color.ink2, fontSize: 16, fontFamily: 'SchibstedGrotesk_700Bold', minWidth: 32, textAlign: 'right' },
   predPtsExact: { color: T.color.good },
