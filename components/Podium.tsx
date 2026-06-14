@@ -28,6 +28,7 @@ export function Podium({ top3, currentUserId, onPressUser }: Props) {
               <Text style={styles.avatarText}>{entry.displayName.charAt(0).toUpperCase()}</Text>
             </View>
             <Text style={styles.name} numberOfLines={1}>{entry.displayName}{isMe ? ' (tú)' : ''}</Text>
+            <Text style={styles.sub} numberOfLines={1}>{entry.exactHits} exactos · {entry.resultHits} correctos</Text>
             <View style={[styles.bar, styles[`bar${position}`], { height: PODIUM_H[position] }]}>
               <Text style={styles.posLabel}>{position}º</Text>
               <Text style={styles.pts}>{entry.totalPoints}</Text>
@@ -55,6 +56,7 @@ const styles = StyleSheet.create({
   avatarFirst: { width: 56, height: 56, borderRadius: 28, backgroundColor: T.color.soft, borderWidth: 2, borderColor: T.color.accent },
   avatarText:  { color: T.color.ink, fontSize: 20, fontFamily: 'SchibstedGrotesk_700Bold' },
   name:        { color: T.color.ink, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold', maxWidth: '100%' },
+  sub:         { color: T.color.ink3, fontSize: 9, fontFamily: 'HankenGrotesk_400Regular', maxWidth: '100%', textAlign: 'center' },
   bar:         { width: '100%', borderTopLeftRadius: 8, borderTopRightRadius: 8, alignItems: 'center', justifyContent: 'center', gap: 2 },
   bar1:        { backgroundColor: T.color.accent },   // 1º verde fuerte
   bar2:        { backgroundColor: '#4A9D78' },         // 2º verde medio
