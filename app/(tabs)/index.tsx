@@ -42,6 +42,7 @@ export default function PrediccionesScreen() {
   const [filter, setFilter]       = useState<PhaseFilter>('group');
   const [sortMode, setSortMode]   = useState<SortMode>('date');
   const [onlyEmpty, setOnlyEmpty] = useState(false);
+  const [onlyUpcoming, setOnlyUpcoming] = useState(true);
 
   // null = "Mis predicciones"; si no, id del grupo seleccionado
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -114,6 +115,10 @@ export default function PrediccionesScreen() {
       return true;
     });
 
+    if (onlyUpcoming) {
+      filtered = filtered.filter((m) => m.status === 'upcoming');
+    }
+
     if (onlyEmpty && !viewingGroup) {
       filtered = filtered.filter((m) => m.status === 'upcoming' && !getPrediction(m.id));
     }
@@ -145,7 +150,7 @@ export default function PrediccionesScreen() {
       bySection.get(key)!.push(match);
     }
     return Array.from(bySection.entries()).map(([title, data]) => ({ title, data }));
-  }, [filter, sortMode, onlyEmpty, liveMatches, getPrediction, viewingGroup]);
+  }, [filter, sortMode, onlyEmpty, onlyUpcoming, liveMatches, getPrediction, viewingGroup]);
 
   return (
     <View style={styles.container}>
@@ -165,6 +170,13 @@ export default function PrediccionesScreen() {
               <Ionicons name="chevron-down" size={16} color={T.color.ink3} />
             </Pressable>
           )}
+          <Pressable
+            style={[styles.userSelector, onlyUpcoming && styles.userSelectorActive]}
+            onPress={() => setOnlyUpcoming((v) => !v)}
+          >
+            <Ionicons name={onlyUpcoming ? 'time' : 'time-outline'} size={14} color={onlyUpcoming ? T.color.accentInk : T.color.ink3} />
+            <Text style={[styles.userSelectorLabel, onlyUpcoming && { color: T.color.accentInk }]}>Próximos</Text>
+          </Pressable>
           {!viewingGroup && (
             <Pressable
               style={[styles.userSelector, onlyEmpty && styles.userSelectorActive]}
