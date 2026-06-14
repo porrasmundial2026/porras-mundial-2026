@@ -226,7 +226,7 @@ export default function RankingScreen() {
                     <View style={styles.statCard}>
                       <Text style={styles.statIcon}>🎯</Text>
                       <View style={styles.statTextBlock}>
-                        <Text style={styles.statCardLabel}>Más marcadores exactos</Text>
+                        <Text style={styles.statCardLabel}>Jugador con más marcadores exactos</Text>
                         <Text style={styles.statCardValue}>{groupStats.topExact.name} · {groupStats.topExact.value}</Text>
                       </View>
                     </View>
@@ -235,7 +235,7 @@ export default function RankingScreen() {
                     <View style={styles.statCard}>
                       <Text style={styles.statIcon}>🔥</Text>
                       <View style={styles.statTextBlock}>
-                        <Text style={styles.statCardLabel}>Partido más acertado</Text>
+                        <Text style={styles.statCardLabel}>Partido con más marcadores exactos</Text>
                         <Text style={styles.statCardValue}>
                           {FLAG[groupStats.bestMatch.match.homeTeam]} {groupStats.bestMatch.match.homeScore}–{groupStats.bestMatch.match.awayScore} {FLAG[groupStats.bestMatch.match.awayTeam]} · {groupStats.bestMatch.exact}/{groupStats.bestMatch.total} exactos
                         </Text>
