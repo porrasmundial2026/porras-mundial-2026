@@ -160,7 +160,7 @@ export default function PrediccionesScreen() {
   // Auto-scroll por defecto al último partido finalizado o en curso (lo más
   // reciente), para no aparecer arriba del todo con cosas ya antiguas.
   const listRef = useRef<SectionList<Match>>(null);
-  const didScroll = useRef(false);
+  const [wantScroll, setWantScroll] = useState(false);
 
   const targetLocation = useMemo(() => {
     let loc: { sectionIndex: number; itemIndex: number } | null = null;
@@ -172,21 +172,20 @@ export default function PrediccionesScreen() {
     return loc;
   }, [sections]);
 
-  // Cada vez que se entra en la pestaña, permitir un nuevo auto-scroll
-  useFocusEffect(useCallback(() => {
-    didScroll.current = false;
-  }, []));
+  // Cada vez que se entra en la pestaña, pedir un nuevo auto-scroll
+  useFocusEffect(useCallback(() => { setWantScroll(true); }, []));
 
+  // Se ejecuta cuando hay petición de scroll Y los datos están listos
   useEffect(() => {
-    if (didScroll.current || !targetLocation) return;
+    if (!wantScroll || !targetLocation) return;
     const t = setTimeout(() => {
       try {
         listRef.current?.scrollToLocation({ ...targetLocation, viewPosition: 0.25, animated: false });
-        didScroll.current = true;
       } catch {}
+      setWantScroll(false);
     }, 350);
     return () => clearTimeout(t);
-  }, [targetLocation]);
+  }, [wantScroll, targetLocation]);
 
   return (
     <View style={styles.container}>
