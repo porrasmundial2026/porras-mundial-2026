@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, SectionList, StyleSheet, Pressable,
   Modal, FlatList, ActivityIndicator,
@@ -157,6 +157,37 @@ export default function PrediccionesScreen() {
     return Array.from(bySection.entries()).map(([title, data]) => ({ title, data }));
   }, [filter, sortMode, onlyEmpty, onlyUpcoming, liveMatches, getPrediction, viewingGroup]);
 
+  // Auto-scroll por defecto al último partido finalizado o en curso (lo más
+  // reciente), para no aparecer arriba del todo con cosas ya antiguas.
+  const listRef = useRef<SectionList<Match>>(null);
+  const didScroll = useRef(false);
+
+  const targetLocation = useMemo(() => {
+    let loc: { sectionIndex: number; itemIndex: number } | null = null;
+    sections.forEach((sec, si) => {
+      sec.data.forEach((m, ii) => {
+        if (m.status === 'finished' || m.status === 'live') loc = { sectionIndex: si, itemIndex: ii };
+      });
+    });
+    return loc;
+  }, [sections]);
+
+  // Cada vez que se entra en la pestaña, permitir un nuevo auto-scroll
+  useFocusEffect(useCallback(() => {
+    didScroll.current = false;
+  }, []));
+
+  useEffect(() => {
+    if (didScroll.current || !targetLocation) return;
+    const t = setTimeout(() => {
+      try {
+        listRef.current?.scrollToLocation({ ...targetLocation, viewPosition: 0.25, animated: false });
+        didScroll.current = true;
+      } catch {}
+    }, 350);
+    return () => clearTimeout(t);
+  }, [targetLocation]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -219,11 +250,13 @@ export default function PrediccionesScreen() {
         <ActivityIndicator color={T.color.accent} style={{ marginTop: 40 }} />
       ) : (
         <SectionList
+          ref={listRef}
           sections={sections}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           stickySectionHeadersEnabled={false}
           keyboardShouldPersistTaps="handled"
+          onScrollToIndexFailed={() => {}}
           renderSectionHeader={({ section }) => {
             const { title } = section;
             const isDate = (section as any).isDate;
