@@ -67,11 +67,17 @@ export function generateDailyRecap(
 
   if (scores.length === 0) return null;
 
-  const seed = hashStr(latestDay);
+  // La semilla incluye cuántos partidos hay finalizados, así el texto se
+  // regenera cada vez que termina un partido (no solo al cambiar de día).
+  const seed = hashStr(`${latestDay}#${fin.length}`);
   const dateLabel = new Date(dayMatches[0].scheduledAt).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  const best = [...scores].sort((a, b) => b.pts - a.pts)[0];
-  const worst = [...scores].sort((a, b) => a.pts - b.pts)[0];
+  // Mejor y peor; si hay empate (p.ej. varios a 0 puntos), se elige al azar
+  // entre los empatados con la semilla, para no sacar siempre al mismo.
+  const maxPts = Math.max(...scores.map((s) => s.pts));
+  const minPts = Math.min(...scores.map((s) => s.pts));
+  const best  = pick(scores.filter((s) => s.pts === maxPts), seed);
+  const worst = pick(scores.filter((s) => s.pts === minPts), seed + 7);
 
   // Nadie puntuó
   if (best.pts === 0) {
