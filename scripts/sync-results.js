@@ -32,6 +32,14 @@ function pairKey(a, b) {
   return [a, b].sort().join('__').replace(/\s/g, '_');
 }
 
+// Hash sencillo de un array de strings (para detectar si las horas cambiaron)
+function hashStrings(arr) {
+  const s = arr.join('|');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
 function apiStatusToOurs(status) {
   if (status === 'FINISHED') return 'finished';
   if (status === 'IN_PLAY' || status === 'PAUSED' || status === 'HALFTIME') return 'live';
@@ -147,31 +155,47 @@ async function sync() {
 
   await batch.commit();
 
-  // Guardar la hora de inicio real de TODOS los partidos (incluidos los no jugados)
-  const timeBatch = db.batch();
-  let timeCount = 0;
-  for (const match of matches) {
-    if (!match.homeTeam?.name || !match.awayTeam?.name || !match.utcDate) continue;
-    const homeTeam = mapTeam(match.homeTeam.name);
-    const awayTeam = mapTeam(match.awayTeam.name);
-    timeBatch.set(db.collection('matchResults').doc(pairKey(homeTeam, awayTeam)), {
-      homeTeam,
-      awayTeam,
-      scheduledAt: match.utcDate, // ISO string con la hora real
-    }, { merge: true });
-    timeCount++;
+  // Guardar la hora de inicio real de TODOS los partidos (incluidos los no jugados).
+  // Las horas son fijas: solo reescribimos si han cambiado respecto a la última
+  // vuelta. Regrabarlas cada vez agotaba la cuota diaria de Firestore.
+  const withTime = matches.filter((m) => m.homeTeam?.name && m.awayTeam?.name && m.utcDate);
+  const scheduleHash = hashStrings(
+    withTime
+      .map((m) => `${pairKey(mapTeam(m.homeTeam.name), mapTeam(m.awayTeam.name))}=${m.utcDate}`)
+      .sort()
+  );
+  const cfgRef = db.collection('config').doc('robot');
+  const cfgSnap = await cfgRef.get();
+  const storedHash = cfgSnap.exists ? cfgSnap.data().scheduleHash : null;
 
-    // Colección 'matches' por matchId con la hora como Timestamp:
-    // sirve para que las REGLAS de Firestore cierren la predicción en el servidor.
-    const matchId = MATCH_ID_MAP[pairKey(homeTeam, awayTeam)];
-    if (matchId) {
-      timeBatch.set(db.collection('matches').doc(matchId), {
-        scheduledAt: admin.firestore.Timestamp.fromDate(new Date(match.utcDate)),
+  if (storedHash === scheduleHash) {
+    console.log('Horas de inicio sin cambios: no se reescriben.');
+  } else {
+    const timeBatch = db.batch();
+    let timeCount = 0;
+    for (const match of withTime) {
+      const homeTeam = mapTeam(match.homeTeam.name);
+      const awayTeam = mapTeam(match.awayTeam.name);
+      timeBatch.set(db.collection('matchResults').doc(pairKey(homeTeam, awayTeam)), {
+        homeTeam,
+        awayTeam,
+        scheduledAt: match.utcDate, // ISO string con la hora real
       }, { merge: true });
+      timeCount++;
+
+      // Colección 'matches' por matchId con la hora como Timestamp:
+      // sirve para que las REGLAS de Firestore cierren la predicción en el servidor.
+      const matchId = MATCH_ID_MAP[pairKey(homeTeam, awayTeam)];
+      if (matchId) {
+        timeBatch.set(db.collection('matches').doc(matchId), {
+          scheduledAt: admin.firestore.Timestamp.fromDate(new Date(match.utcDate)),
+        }, { merge: true });
+      }
     }
+    timeBatch.set(cfgRef, { scheduleHash }, { merge: true });
+    await timeBatch.commit();
+    console.log(`Horas de inicio actualizadas: ${timeCount}`);
   }
-  await timeBatch.commit();
-  console.log(`Horas de inicio guardadas: ${timeCount}`);
 
   if (unmappedTeams.size > 0) {
     console.log('⚠️ EQUIPOS SIN MAPEAR (revisar teamMap.js):', JSON.stringify([...unmappedTeams]));
