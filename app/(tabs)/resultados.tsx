@@ -203,15 +203,19 @@ export default function ResultadosScreen() {
 
             {teamMatches.map((m) => {
               const played = m.status === 'finished' || m.status === 'live';
-              const isLocal = m.homeTeam === teamDetail;
-              const rival = isLocal ? m.awayTeam : m.homeTeam;
               return (
                 <View key={m.id} style={styles.teamMatchRow}>
-                  <Flag team={rival} size={18} />
-                  <Text style={styles.teamMatchRival} numberOfLines={1}>{rival}</Text>
-                  <Text style={[styles.teamMatchScore, m.status === 'live' && { color: T.color.danger }, m.status === 'finished' && { color: T.color.good }]}>
+                  <View style={styles.tmSide}>
+                    <Flag team={m.homeTeam} size={18} />
+                    <Text style={[styles.tmName, m.homeTeam === teamDetail && styles.tmNameMe]} numberOfLines={1}>{m.homeTeam}</Text>
+                  </View>
+                  <Text style={[styles.tmScore, m.status === 'live' && { color: T.color.danger }, m.status === 'finished' && { color: T.color.good }]}>
                     {played ? `${m.homeScore}–${m.awayScore}` : new Date(m.scheduledAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                   </Text>
+                  <View style={[styles.tmSide, styles.tmSideRight]}>
+                    <Text style={[styles.tmName, styles.tmNameRight, m.awayTeam === teamDetail && styles.tmNameMe]} numberOfLines={1}>{m.awayTeam}</Text>
+                    <Flag team={m.awayTeam} size={18} />
+                  </View>
                 </View>
               );
             })}
@@ -313,9 +317,13 @@ const styles = StyleSheet.create({
   teamHeader:  { flexDirection: 'row', alignItems: 'center', gap: 10 },
   teamTitle:   { color: T.color.ink, fontSize: 19, fontFamily: 'SchibstedGrotesk_800ExtraBold', flexShrink: 1 },
   teamSub:     { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2, marginBottom: 8 },
-  teamMatchRow:{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: T.color.line },
-  teamMatchRival: { flex: 1, color: T.color.ink, fontSize: 14, fontFamily: 'HankenGrotesk_700Bold' },
-  teamMatchScore: { color: T.color.ink2, fontSize: 15, fontFamily: 'SchibstedGrotesk_700Bold' },
+  teamMatchRow:{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: T.color.line },
+  tmSide:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tmSideRight: { justifyContent: 'flex-end' },
+  tmName:      { flexShrink: 1, color: T.color.ink2, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium' },
+  tmNameRight: { textAlign: 'right' },
+  tmNameMe:    { color: T.color.ink, fontFamily: 'HankenGrotesk_700Bold' },
+  tmScore:     { minWidth: 54, textAlign: 'center', color: T.color.ink2, fontSize: 15, fontFamily: 'SchibstedGrotesk_700Bold' },
   teamCloseBtn: { marginTop: 14, backgroundColor: T.color.accent, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   teamCloseText: { color: '#fff', fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   timeLarge:   { color: T.color.ink, fontSize: 18, fontFamily: 'SchibstedGrotesk_700Bold' },
