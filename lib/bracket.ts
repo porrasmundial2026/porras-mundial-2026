@@ -91,11 +91,11 @@ export function resolveBracket(allMatches: Match[]): Match[] {
     switch (slot.kind) {
       case 'first': {
         const t = standings.byGroup[slot.group];
-        return standings.groupStageComplete && t?.[0] ? t[0].team : TBD;
+        return standings.groupComplete[slot.group] && t?.[0] ? t[0].team : TBD;
       }
       case 'second': {
         const t = standings.byGroup[slot.group];
-        return standings.groupStageComplete && t?.[1] ? t[1].team : TBD;
+        return standings.groupComplete[slot.group] && t?.[1] ? t[1].team : TBD;
       }
       case 'third':
         return thirdAssignment.get(`${matchId}:${side}`) ?? TBD;

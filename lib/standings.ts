@@ -76,6 +76,8 @@ export interface AllStandings {
   byGroup: Record<string, TeamStanding[]>;
   /** ¿Han terminado TODOS los partidos de grupo? */
   groupStageComplete: boolean;
+  /** Por grupo: ¿han terminado TODOS sus partidos? (para rellenar 1º/2º) */
+  groupComplete: Record<string, boolean>;
   /** Los 8 mejores terceros, ordenados de mejor a peor. */
   bestThirds: TeamStanding[];
 }
@@ -86,6 +88,13 @@ export function computeAllStandings(matches: Match[]): AllStandings {
 
   for (const g of groupLetters) {
     byGroup[g] = computeGroupStanding(g, matches);
+  }
+
+  // ¿Cada grupo ha terminado TODOS sus partidos? (1º/2º solo se rellenan así)
+  const groupComplete: Record<string, boolean> = {};
+  for (const g of groupLetters) {
+    const gm = matches.filter((m) => m.phase === 'group' && m.group === g);
+    groupComplete[g] = gm.length > 0 && gm.every((m) => m.status === 'finished');
   }
 
   // ¿Todos los 72 partidos de grupo finalizados?
@@ -101,5 +110,5 @@ export function computeAllStandings(matches: Match[]): AllStandings {
 
   const bestThirds = thirds.slice(0, 8);
 
-  return { byGroup, groupStageComplete, bestThirds };
+  return { byGroup, groupStageComplete, groupComplete, bestThirds };
 }
