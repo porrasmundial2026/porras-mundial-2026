@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { TeamStanding } from '../lib/standings';
 import { Flag } from './Flag';
 import { C, SHADOW } from '../constants/theme';
@@ -9,9 +9,10 @@ interface Props {
   groupLetter: string;
   standings: TeamStanding[];
   liveTeams?: Set<string>;
+  onPressTeam?: (team: string) => void;
 }
 
-export function GroupStandingTable({ groupLetter, standings, liveTeams }: Props) {
+export function GroupStandingTable({ groupLetter, standings, liveTeams, onPressTeam }: Props) {
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Grupo {groupLetter}</Text>
@@ -29,7 +30,7 @@ export function GroupStandingTable({ groupLetter, standings, liveTeams }: Props)
         const qualifies = i < 2;        // 1º y 2º pasan directo
         const maybe = i === 2;          // 3º puede pasar como mejor tercero
         return (
-          <View key={s.team} style={styles.row}>
+          <Pressable key={s.team} style={styles.row} onPress={() => onPressTeam?.(s.team)}>
             <View style={styles.posWrap}>
               <View style={[styles.dot, qualifies ? styles.dotQ : maybe ? styles.dotMaybe : styles.dotOut]} />
               <Text style={styles.pos}>{i + 1}</Text>
@@ -42,7 +43,7 @@ export function GroupStandingTable({ groupLetter, standings, liveTeams }: Props)
             <Text style={styles.col}>{s.played}</Text>
             <Text style={styles.col}>{s.gd > 0 ? `+${s.gd}` : s.gd}</Text>
             <Text style={styles.colPts}>{s.points}</Text>
-          </View>
+          </Pressable>
         );
       })}
     </View>

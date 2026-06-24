@@ -35,8 +35,17 @@ export default function ResultadosScreen() {
   const [filter, setFilter] = useState<Filter>('upcoming');
   const [country, setCountry] = useState<string | null>(null);
   const [countryModal, setCountryModal] = useState(false);
+  const [teamDetail, setTeamDetail] = useState<string | null>(null);
 
   useFocusEffect(useCallback(() => { trackScreen('Resultados'); }, []));
+
+  // Partidos de fase de grupos del país seleccionado (para el popup)
+  const teamMatches = useMemo(() => {
+    if (!teamDetail) return [];
+    return liveMatches
+      .filter((m) => m.phase === 'group' && (m.homeTeam === teamDetail || m.awayTeam === teamDetail))
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  }, [teamDetail, liveMatches]);
 
   const sections = useMemo(() => {
     const filtered = liveMatches.filter((m) => {
@@ -144,7 +153,7 @@ export default function ResultadosScreen() {
             </View>
           }
           renderItem={({ item }) => (
-            <GroupStandingTable groupLetter={item} standings={standings.byGroup[item]} liveTeams={liveTeams} />
+            <GroupStandingTable groupLetter={item} standings={standings.byGroup[item]} liveTeams={liveTeams} onPressTeam={setTeamDetail} />
           )}
         />
       )}
@@ -179,6 +188,41 @@ export default function ResultadosScreen() {
             />
           </View>
         </Pressable>
+      </Modal>
+
+      {/* Popup con los partidos de grupo del país pulsado */}
+      <Modal visible={!!teamDetail} transparent animationType="fade" onRequestClose={() => setTeamDetail(null)}>
+        <View style={styles.teamOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setTeamDetail(null)} />
+          <View style={styles.teamCard}>
+            <View style={styles.teamHeader}>
+              {teamDetail && <Flag team={teamDetail} size={28} />}
+              <Text style={styles.teamTitle}>{teamDetail}</Text>
+            </View>
+            <Text style={styles.teamSub}>Fase de grupos</Text>
+
+            {teamMatches.map((m) => {
+              const played = m.status === 'finished' || m.status === 'live';
+              const isLocal = m.homeTeam === teamDetail;
+              const rival = isLocal ? m.awayTeam : m.homeTeam;
+              const own = isLocal ? m.homeScore : m.awayScore;
+              const opp = isLocal ? m.awayScore : m.homeScore;
+              return (
+                <View key={m.id} style={styles.teamMatchRow}>
+                  <Flag team={rival} size={18} />
+                  <Text style={styles.teamMatchRival} numberOfLines={1}>{rival}</Text>
+                  <Text style={[styles.teamMatchScore, m.status === 'live' && { color: T.color.danger }, m.status === 'finished' && { color: T.color.good }]}>
+                    {played ? `${own}–${opp}` : new Date(m.scheduledAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                  </Text>
+                </View>
+              );
+            })}
+
+            <Pressable style={styles.teamCloseBtn} onPress={() => setTeamDetail(null)}>
+              <Text style={styles.teamCloseText}>Cerrar</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -266,6 +310,16 @@ const styles = StyleSheet.create({
   scoreFinal:  { color: T.color.good },
   scoreLive:   { color: T.color.danger },
   penText:     { color: T.color.ink2, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold' },
+  teamOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  teamCard:    { width: '100%', maxWidth: 420, backgroundColor: T.color.surface, borderRadius: 16, padding: 16 },
+  teamHeader:  { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  teamTitle:   { color: T.color.ink, fontSize: 19, fontFamily: 'SchibstedGrotesk_800ExtraBold', flexShrink: 1 },
+  teamSub:     { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2, marginBottom: 8 },
+  teamMatchRow:{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: T.color.line },
+  teamMatchRival: { flex: 1, color: T.color.ink, fontSize: 14, fontFamily: 'HankenGrotesk_700Bold' },
+  teamMatchScore: { color: T.color.ink2, fontSize: 15, fontFamily: 'SchibstedGrotesk_700Bold' },
+  teamCloseBtn: { marginTop: 14, backgroundColor: T.color.accent, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  teamCloseText: { color: '#fff', fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   timeLarge:   { color: T.color.ink, fontSize: 18, fontFamily: 'SchibstedGrotesk_700Bold' },
   finText:     { color: T.color.ink3, fontSize: 10, fontFamily: 'HankenGrotesk_500Medium', letterSpacing: 0.8 },
   dateSub:     { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_500Medium' },
