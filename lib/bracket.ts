@@ -81,13 +81,18 @@ function assignThirds(standings: AllStandings): Map<string, string> {
  * Resuelve los equipos de toda la eliminatoria a partir de las clasificaciones
  * de grupo y de los resultados de la propia eliminatoria.
  */
-export function resolveBracket(allMatches: Match[]): Match[] {
+export type BracketOverrides = Record<string, { home?: string; away?: string }>;
+
+export function resolveBracket(allMatches: Match[], overrides: BracketOverrides = {}): Match[] {
   const standings = computeAllStandings(allMatches);
   const thirdAssignment = assignThirds(standings);
   const matchById = new Map(allMatches.map((m) => [m.id, m]));
   const resolved = new Map<string, { home: string; away: string }>();
 
   function resolveSlot(slot: Slot, matchId: string, side: 'home' | 'away'): string {
+    // El override manual del admin tiene prioridad sobre el cálculo automático
+    const ov = overrides[matchId]?.[side];
+    if (ov) return ov;
     switch (slot.kind) {
       case 'first': {
         const t = standings.byGroup[slot.group];

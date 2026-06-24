@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { ALL_MATCHES } from '../constants/matches';
 import { Match } from '../types';
-import { resolveBracket } from '../lib/bracket';
+import { resolveBracket, BracketOverrides } from '../lib/bracket';
 
 interface MatchResult {
   homeTeam: string;
@@ -71,26 +71,37 @@ function applyResults(matches: Match[], resultMap: Map<string, MatchResult>): Ma
  */
 export function useMatchResults(): Match[] {
   const [matches, setMatches] = useState<Match[]>(() => resolveBracket(ALL_MATCHES));
+  const resultMapRef = useRef<Map<string, MatchResult>>(new Map());
+  const overridesRef = useRef<BracketOverrides>({});
+
+  const recompute = useCallback(() => {
+    let current = ALL_MATCHES;
+    for (let i = 0; i < 6; i++) {
+      current = resolveBracket(current, overridesRef.current); // equipos: clasificación / ganadores / override admin
+      current = applyResults(current, resultMapRef.current);   // marcadores ya conocidos
+    }
+    setMatches(current);
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'matchResults'), (snap) => {
+    const unsubResults = onSnapshot(collection(db, 'matchResults'), (snap) => {
       const resultMap = new Map<string, MatchResult>();
-      snap.docs.forEach((doc) => {
-        const d = doc.data() as MatchResult;
-        resultMap.set(pairKey(d.homeTeam, d.awayTeam), d);
+      snap.docs.forEach((d) => {
+        const data = d.data() as MatchResult;
+        resultMap.set(pairKey(data.homeTeam, data.awayTeam), data);
       });
-
-      let current = ALL_MATCHES;
-      for (let i = 0; i < 6; i++) {
-        current = resolveBracket(current);      // rellena equipos según clasificación / ganadores
-        current = applyResults(current, resultMap); // aplica marcadores ya conocidos
-      }
-
-      setMatches(current);
+      resultMapRef.current = resultMap;
+      recompute();
     });
 
-    return unsubscribe;
-  }, []);
+    // Override manual del cuadro (admin): doc único config/bracket
+    const unsubBracket = onSnapshot(doc(db, 'config', 'bracket'), (snap) => {
+      overridesRef.current = snap.exists() ? ((snap.data().slots as BracketOverrides) ?? {}) : {};
+      recompute();
+    });
+
+    return () => { unsubResults(); unsubBracket(); };
+  }, [recompute]);
 
   return matches;
 }

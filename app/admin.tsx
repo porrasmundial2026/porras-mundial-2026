@@ -12,10 +12,11 @@ import { isAdmin } from '../constants/admin';
 import { PHASE_LABELS, ALL_MATCHES } from '../constants/matches';
 import { FLAG } from '../constants/flags';
 import { calculatePoints } from '../lib/scoring';
+import { BracketAdmin } from '../components/BracketAdmin';
 import { Match, UserProfile, Prediction } from '../types';
 import { C, SHADOW, T } from '../constants/theme';
 
-type AdminTab = 'resultados' | 'usuarios' | 'grupos' | 'stats';
+type AdminTab = 'resultados' | 'usuarios' | 'grupos' | 'cuadro' | 'stats';
 interface AdminGroup { id: string; name: string; code: string; ownerId: string; members: string[]; memberNames: string[] }
 
 export default function AdminScreen() {
@@ -220,6 +221,9 @@ export default function AdminScreen() {
         <Pressable style={[styles.tabBtn, tab === 'grupos' && styles.tabBtnActive]} onPress={() => setTab('grupos')}>
           <Text style={[styles.tabText, tab === 'grupos' && styles.tabTextActive]}>Grupos</Text>
         </Pressable>
+        <Pressable style={[styles.tabBtn, tab === 'cuadro' && styles.tabBtnActive]} onPress={() => setTab('cuadro')}>
+          <Text style={[styles.tabText, tab === 'cuadro' && styles.tabTextActive]}>Cuadro</Text>
+        </Pressable>
         <Pressable style={[styles.tabBtn, tab === 'stats' && styles.tabBtnActive]} onPress={() => setTab('stats')}>
           <Text style={[styles.tabText, tab === 'stats' && styles.tabTextActive]}>Stats</Text>
         </Pressable>
@@ -312,6 +316,8 @@ export default function AdminScreen() {
             )}
           />
         )
+      ) : tab === 'cuadro' ? (
+        <BracketAdmin matches={liveMatches} />
       ) : loadingStats ? (
         <ActivityIndicator color={T.color.accent} style={{ marginTop: 40 }} />
       ) : (
@@ -544,7 +550,7 @@ const styles = StyleSheet.create({
   tabRow: { flexDirection: 'row', backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
   tabBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabBtnActive: { borderBottomColor: T.color.accent },
-  tabText: { color: C.textSecondary, fontSize: 14, fontWeight: '600' },
+  tabText: { color: C.textSecondary, fontSize: 12, fontWeight: '600' },
   tabTextActive: { color: T.color.accent },
   usersCount: { color: C.textSecondary, fontSize: 12, marginBottom: 8 },
   userFilterRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
