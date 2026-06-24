@@ -205,14 +205,12 @@ export default function ResultadosScreen() {
               const played = m.status === 'finished' || m.status === 'live';
               const isLocal = m.homeTeam === teamDetail;
               const rival = isLocal ? m.awayTeam : m.homeTeam;
-              const own = isLocal ? m.homeScore : m.awayScore;
-              const opp = isLocal ? m.awayScore : m.homeScore;
               return (
                 <View key={m.id} style={styles.teamMatchRow}>
                   <Flag team={rival} size={18} />
                   <Text style={styles.teamMatchRival} numberOfLines={1}>{rival}</Text>
                   <Text style={[styles.teamMatchScore, m.status === 'live' && { color: T.color.danger }, m.status === 'finished' && { color: T.color.good }]}>
-                    {played ? `${own}–${opp}` : new Date(m.scheduledAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                    {played ? `${m.homeScore}–${m.awayScore}` : new Date(m.scheduledAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                   </Text>
                 </View>
               );
