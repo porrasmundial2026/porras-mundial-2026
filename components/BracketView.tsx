@@ -2,13 +2,16 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { Match } from '../types';
 import { Flag } from './Flag';
-import { BRACKET, slotLabel } from '../constants/bracket';
+import { BRACKET, slotLabel, bracketDisplayOrder } from '../constants/bracket';
 import { C, SHADOW } from '../constants/theme';
 
 // Mapa id de partido -> etiquetas de sus dos huecos (1ºA, Ganador..., etc.)
 const SLOTS: Record<string, { home: string; away: string }> = Object.fromEntries(
   BRACKET.map((b) => [b.id, { home: slotLabel(b.home), away: slotLabel(b.away) }])
 );
+
+// Orden vertical según el árbol del cuadro (no por número/fecha)
+const ORDER = bracketDisplayOrder();
 
 interface Props {
   matches: Match[];
@@ -32,7 +35,9 @@ export function BracketView({ matches }: Props) {
     >
       <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.container}>
         {ROUNDS.map(({ key, label }) => {
-          const roundMatches = matches.filter((m) => m.phase === key);
+          const roundMatches = matches
+            .filter((m) => m.phase === key)
+            .sort((a, b) => (ORDER[a.id] ?? 0) - (ORDER[b.id] ?? 0));
           if (roundMatches.length === 0) return null;
           return (
             <View key={key} style={styles.column}>

@@ -102,3 +102,27 @@ export const FINALS: BracketMatch[] = [
 ];
 
 export const BRACKET: BracketMatch[] = [...R32, ...R16, ...QF, ...SF, ...FINALS];
+
+/**
+ * Orden vertical CANÓNICO del cuadro: recorrido en orden del árbol desde la
+ * final, para que los cruces se dibujen como en el cuadro oficial (los dos
+ * partidos cuyos ganadores se enfrentan quedan juntos), no por número/fecha.
+ * Devuelve un mapa id-de-partido → índice de posición.
+ */
+export function bracketDisplayOrder(): Record<string, number> {
+  const feeder = (s: Slot) => (s.kind === 'winner' || s.kind === 'loser' ? s.matchId : null);
+  const feeders: Record<string, [string | null, string | null]> = {};
+  for (const bm of BRACKET) feeders[bm.id] = [feeder(bm.home), feeder(bm.away)];
+
+  const order: Record<string, number> = {};
+  let i = 0;
+  const visit = (id: string | null) => {
+    if (!id) return;
+    const [h, a] = feeders[id] ?? [null, null];
+    visit(h);            // sub-árbol local arriba
+    order[id] = i++;
+    visit(a);            // sub-árbol visitante abajo
+  };
+  visit('final-1');
+  return order;
+}
