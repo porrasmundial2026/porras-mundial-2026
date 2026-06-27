@@ -259,7 +259,7 @@ export default function PrediccionesScreen() {
           ListHeaderComponent={filter === 'knockout' ? (
             <View style={styles.infoCard}>
               <Text style={styles.infoText}>
-                ⚽ En eliminatorias puntúa el resultado tras la <Text style={styles.infoBold}>prórroga (120')</Text>. Los penaltis solo deciden quién pasa: <Text style={styles.infoBold}>no cuentan</Text> para tu predicción.
+                ⚽ En eliminatorias puntúa el resultado <Text style={styles.infoBold}>a los 90'</Text> si hay ganador, o <Text style={styles.infoBold}>al final de la prórroga (120')</Text> si la hay. Los penaltis solo deciden quién pasa: <Text style={styles.infoBold}>no cuentan</Text> para tu predicción.
               </Text>
             </View>
           ) : null}
