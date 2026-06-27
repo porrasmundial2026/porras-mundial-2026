@@ -12,3 +12,8 @@ GoogleService-Info.plist
 
 expo-env.d.ts
 # @end expo-cli
+# Build nativo generado (no versionar)
+/android
+/ios
+*.jks
+*.keystore

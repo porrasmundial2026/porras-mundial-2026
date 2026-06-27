@@ -256,6 +256,13 @@ export default function PrediccionesScreen() {
           stickySectionHeadersEnabled={false}
           keyboardShouldPersistTaps="handled"
           onScrollToIndexFailed={() => {}}
+          ListHeaderComponent={filter === 'knockout' ? (
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>
+                ⚽ En eliminatorias puntúa el resultado tras la <Text style={styles.infoBold}>prórroga (120')</Text>. Los penaltis solo deciden quién pasa: <Text style={styles.infoBold}>no cuentan</Text> para tu predicción.
+              </Text>
+            </View>
+          ) : null}
           renderSectionHeader={({ section }) => {
             const { title } = section;
             const isDate = (section as any).isDate;
@@ -417,6 +424,9 @@ const styles = StyleSheet.create({
   chipTextActive: { color: '#fff' },
 
   list: { paddingHorizontal: T.space.lg, paddingBottom: 32 },
+  infoCard: { backgroundColor: T.color.soft, borderRadius: T.radius.card, padding: T.space.md, marginTop: T.space.md },
+  infoText: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium', lineHeight: 19 },
+  infoBold: { fontFamily: 'HankenGrotesk_700Bold', color: T.color.accent },
   sectionHeader: { marginTop: T.space.xl, marginBottom: T.space.sm, gap: 2 },
   sectionTitle: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   sectionSub: { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
