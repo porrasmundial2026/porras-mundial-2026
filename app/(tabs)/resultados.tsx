@@ -31,7 +31,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 
 export default function ResultadosScreen() {
   const liveMatches = useMatchResults();
-  const [view,   setView]   = useState<ViewMode>('matches');
+  const [view,   setView]   = useState<ViewMode>('bracket');
   const [filter, setFilter] = useState<Filter>('upcoming');
   const [country, setCountry] = useState<string | null>(null);
   const [countryModal, setCountryModal] = useState(false);
