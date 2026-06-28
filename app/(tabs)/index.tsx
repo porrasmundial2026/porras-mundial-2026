@@ -128,7 +128,23 @@ export default function PrediccionesScreen() {
       filtered = filtered.filter((m) => m.status === 'upcoming' && !getPrediction(m.id));
     }
 
-    if (sortMode === 'date' || filter === 'knockout') {
+    if (filter === 'knockout') {
+      // Agrupar por ronda (Dieciseisavos, Octavos, ...), en orden, y dentro por fecha
+      const roundOrder: Match['phase'][] = ['r32', 'r16', 'quarter', 'semi', 'third', 'final'];
+      const byRound = new Map<string, Match[]>();
+      for (const match of filtered) {
+        if (!byRound.has(match.phase)) byRound.set(match.phase, []);
+        byRound.get(match.phase)!.push(match);
+      }
+      return roundOrder
+        .filter((p) => byRound.has(p))
+        .map((p) => ({
+          title: PHASE_LABELS[p],
+          data: byRound.get(p)!.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()),
+        }));
+    }
+
+    if (sortMode === 'date') {
       const sorted = [...filtered].sort((a, b) =>
         new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
       );
