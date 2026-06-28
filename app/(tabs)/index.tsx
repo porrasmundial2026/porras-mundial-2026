@@ -290,7 +290,7 @@ export default function PrediccionesScreen() {
               </View>
             );
           }}
-          renderItem={({ item }) => (
+          renderItem={({ item, index, section }) => (
             viewingGroup ? (
               <View style={styles.groupMatchWrap}>
                 <MatchCard match={item} prediction={undefined} onSave={async () => {}} readOnly />
@@ -341,7 +341,17 @@ export default function PrediccionesScreen() {
                 </View>
               </View>
             ) : (
-              <MatchCard match={item} prediction={getPrediction(item.id)} onSave={savePrediction} />
+              <>
+                {filter === 'knockout' && (() => {
+                  const dayKey = (m: Match) => { const d = new Date(m.scheduledAt); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+                  const prev = index > 0 ? (section.data as Match[])[index - 1] : null;
+                  if (prev && dayKey(prev) === dayKey(item)) return null;
+                  let label = new Date(item.scheduledAt).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+                  label = label.charAt(0).toUpperCase() + label.slice(1);
+                  return <Text style={styles.daySubHeader}>{label}</Text>;
+                })()}
+                <MatchCard match={item} prediction={getPrediction(item.id)} onSave={savePrediction} />
+              </>
             )
           )}
         />
@@ -443,6 +453,7 @@ const styles = StyleSheet.create({
   infoCard: { backgroundColor: T.color.soft, borderRadius: T.radius.card, padding: T.space.md, marginTop: T.space.md },
   infoText: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_500Medium', lineHeight: 19 },
   infoBold: { fontFamily: 'HankenGrotesk_700Bold', color: T.color.accent },
+  daySubHeader: { color: T.color.ink2, fontSize: 12, fontFamily: 'HankenGrotesk_700Bold', marginTop: T.space.sm, marginBottom: 2, marginLeft: 2 },
   sectionHeader: { marginTop: T.space.xl, marginBottom: T.space.sm, gap: 2 },
   sectionTitle: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   sectionSub: { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_400Regular' },
