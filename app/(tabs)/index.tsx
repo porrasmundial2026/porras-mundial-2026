@@ -39,7 +39,7 @@ export default function PrediccionesScreen() {
   const { getPrediction, savePrediction } = usePredictions();
   const liveMatches = useMatchResults();
   const { groups } = useGroups();
-  const [filter, setFilter]       = useState<PhaseFilter>('group');
+  const [filter, setFilter]       = useState<PhaseFilter>('knockout');
   const [sortMode, setSortMode]   = useState<SortMode>('date');
   const [onlyEmpty, setOnlyEmpty] = useState(false);
   const [onlyUpcoming, setOnlyUpcoming] = useState(true);
