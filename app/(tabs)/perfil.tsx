@@ -184,6 +184,12 @@ export default function PerfilScreen() {
         </Pressable>
       )}
 
+      {admin && (
+        <Pressable style={[styles.adminBtn, { marginTop: T.space.sm }]} onPress={() => router.push('/resumen' as any)}>
+          <Text style={styles.adminText}>🏆 Resumen del torneo</Text>
+        </Pressable>
+      )}
+
       <Pressable style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutText}>Cerrar sesión</Text>
       </Pressable>
