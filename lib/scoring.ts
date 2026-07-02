@@ -29,12 +29,23 @@ export function buildRanking(
 ): RankingEntry[] {
   const resultMap = new Map(finishedMatches.map((m) => [m.id, m]));
 
+  // Goles totales reales del torneo (suma de todos los partidos finalizados)
+  const tournamentGoals = finishedMatches.reduce((sum, m) => {
+    if (m.status === 'finished' && m.homeScore != null && m.awayScore != null) {
+      return sum + m.homeScore + m.awayScore;
+    }
+    return sum;
+  }, 0);
+
+  const goalDiffByUser = new Map<string, number>();
+
   const entries = members.map(({ userId, displayName, photoURL }) => {
     const userPredictions = predictions.filter((p) => p.userId === userId);
     let totalPoints = 0;
     let exactHits = 0;
     let resultHits = 0;
     let predicted = 0;
+    let predictedGoals = 0;
 
     for (const pred of userPredictions) {
       const match = resultMap.get(pred.matchId);
@@ -45,7 +56,11 @@ export function buildRanking(
       if (pts === 5) exactHits++;
       if (pts === 2) resultHits++;
       predicted++;
+      predictedGoals += pred.homeScore + pred.awayScore;
     }
+
+    // Desempate: cuán cerca quedó la suma de goles predichos del total real
+    goalDiffByUser.set(userId, Math.abs(predictedGoals - tournamentGoals));
 
     return { userId, displayName, photoURL, totalPoints, exactHits, resultHits, predicted };
   });
@@ -53,6 +68,11 @@ export function buildRanking(
   return entries.sort((a, b) => {
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
     if (b.exactHits !== a.exactHits) return b.exactHits - a.exactHits;
-    return b.resultHits - a.resultHits;
+    if (b.resultHits !== a.resultHits) return b.resultHits - a.resultHits;
+    // Desempate: quien más cerca quedó del nº total de goles del torneo
+    const gd = (goalDiffByUser.get(a.userId) ?? 0) - (goalDiffByUser.get(b.userId) ?? 0);
+    if (gd !== 0) return gd;
+    // A igualdad total: orden alfabético (determinista y estable)
+    return a.displayName.localeCompare(b.displayName, 'es');
   });
 }
