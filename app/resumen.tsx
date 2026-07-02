@@ -110,15 +110,16 @@ export default function ResumenScreen() {
     const kingGroup = buildRanking(members, predictions, groupFin)[0];
     const kingKo = koFin.length > 0 ? buildRanking(members, predictions, koFin)[0] : null;
 
-    // Goles del torneo + quién más cerca
+    // Goles del torneo + goles predichos por cada uno
     const totalGoals = finished.reduce((s, m) => s + (m.homeScore ?? 0) + (m.awayScore ?? 0), 0);
-    const closest = members.map((mem) => {
+    const goalsList = members.map((mem) => {
       let g = 0;
       for (const p of predictions.filter((x) => x.userId === mem.userId)) {
         if (resultMap.has(p.matchId)) g += p.homeScore + p.awayScore;
       }
       return { name: mem.displayName, diff: Math.abs(g - totalGoals), g };
-    }).sort((a, b) => a.diff - b.diff)[0];
+    }).sort((a, b) => a.diff - b.diff);
+    const closest = goalsList[0];
 
     // Partido más loco (más goles)
     const wildest = [...finished].sort((a, b) => ((b.homeScore ?? 0) + (b.awayScore ?? 0)) - ((a.homeScore ?? 0) + (a.awayScore ?? 0)))[0];
@@ -132,7 +133,7 @@ export default function ResumenScreen() {
       else if (finalMatch.penaltyWinner) champion = finalMatch.penaltyWinner === 'home' ? finalMatch.homeTeam : finalMatch.awayTeam;
     }
 
-    return { nostra, zeros, best, bestDayLabel, kingGroup, kingKo, totalGoals, closest, wildest, champion, playedCount: finished.length };
+    return { nostra, zeros, best, bestDayLabel, kingGroup, kingKo, totalGoals, closest, goalsList, wildest, champion, playedCount: finished.length };
   }, [members, predictions, finished, ranking, liveMatches]);
 
   // ---- Definición de slides ----
@@ -186,14 +187,23 @@ export default function ResumenScreen() {
     )});
 
     arr.push({ key: 'goles', render: () => (
-      <View style={styles.center}>
-        <FadeIn><Text style={styles.emoji}>⚽</Text></FadeIn>
+      <View style={[styles.slideInner, { paddingTop: 40, justifyContent: 'center' }]}>
+        <FadeIn><Text style={[styles.emoji, { textAlign: 'center' }]}>⚽</Text></FadeIn>
         <FadeIn delay={150}><Text style={styles.label}>Goles del torneo</Text></FadeIn>
-        <FadeIn delay={250}><Text style={styles.bigNum}>{stats.totalGoals}</Text></FadeIn>
+        <FadeIn delay={250}><Text style={[styles.bigNum, { textAlign: 'center' }]}>{stats.totalGoals}</Text></FadeIn>
         <FadeIn delay={350}><Text style={styles.sub}>en {stats.playedCount} partidos jugados</Text></FadeIn>
-        {stats.closest && (
-          <FadeIn delay={550}><Text style={styles.hint}>Quien más cerca quedó: {stats.closest.name} (predijo {stats.closest.g})</Text></FadeIn>
-        )}
+        <FadeIn delay={550} style={{ width: '100%', marginTop: 18 }}>
+          <Text style={[styles.label, { marginBottom: 8 }]}>Goles que predijo cada uno</Text>
+          <ScrollView style={{ maxHeight: 260, width: '100%' }} contentContainerStyle={{ gap: 6 }}>
+            {stats.goalsList.map((it, i) => (
+              <View key={it.name} style={[styles.rankRow, i === 0 && { borderColor: T.color.accent, backgroundColor: T.color.soft }]}>
+                <Text style={styles.rankName} numberOfLines={1}>{it.name}{i === 0 ? '  🎯' : ''}</Text>
+                <Text style={styles.rankPts}>{it.g}</Text>
+                <Text style={styles.golDiff}>{it.diff === 0 ? 'clavado' : `±${it.diff}`}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </FadeIn>
       </View>
     )});
 
@@ -394,4 +404,5 @@ const styles = StyleSheet.create({
   rankPos: { width: 22, color: T.color.ink3, fontSize: 14, fontFamily: 'SchibstedGrotesk_700Bold' },
   rankName: { flex: 1, color: T.color.ink, fontSize: 14, fontFamily: 'HankenGrotesk_700Bold' },
   rankPts: { color: T.color.accent, fontSize: 16, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
+  golDiff: { width: 60, textAlign: 'right', color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_700Bold' },
 });
