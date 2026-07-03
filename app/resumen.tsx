@@ -376,22 +376,22 @@ export default function ResumenScreen() {
     if (stats.faithful) honores.push({ emoji: '🦉', label: 'El más fiel', value: stats.faithful.name, sub: `no dejó ni un partido sin predecir` });
 
     if (honores.length > 0) arr.push({ key: 'honores', render: () => (
-      <View style={[styles.slideInner, { paddingTop: 40, justifyContent: 'center' }]}>
+      <View style={[styles.slideInner, { paddingTop: 30 }]}>
         <FadeIn><Text style={styles.title}>Honores del grupo</Text></FadeIn>
-        <View style={{ width: '100%', marginTop: 18, gap: 10 }}>
+        <ScrollView style={{ width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
           {honores.map((h, i) => (
-            <FadeIn key={h.label} delay={150 + i * 130}>
-              <View style={styles.honorRow}>
-                <Text style={styles.honorEmoji}>{h.emoji}</Text>
+            <FadeIn key={h.label} delay={150 + i * 100}>
+              <View style={[styles.honorRow, styles.honorRowCompact]}>
+                <Text style={styles.honorEmojiSmall}>{h.emoji}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.honorLabel}>{h.label}</Text>
-                  <Text style={styles.honorValue}>{h.value}</Text>
-                  <Text style={styles.honorSub}>{h.sub}</Text>
+                  <Text style={styles.honorLabelSmall}>{h.label}</Text>
+                  <Text style={styles.honorValueSmall}>{h.value}</Text>
+                  <Text style={styles.honorSubSmall}>{h.sub}</Text>
                 </View>
               </View>
             </FadeIn>
           ))}
-        </View>
+        </ScrollView>
       </View>
     )});
 
@@ -754,4 +754,9 @@ const styles = StyleSheet.create({
   honorLabel: { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.5 },
   honorValue: { color: T.color.ink, fontSize: 17, fontFamily: 'SchibstedGrotesk_800ExtraBold', marginTop: 1 },
   honorSub: { color: T.color.ink2, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', marginTop: 1 },
+  honorRowCompact: { padding: 9, borderRadius: 12 },
+  honorEmojiSmall: { fontSize: 20 },
+  honorLabelSmall: { color: T.color.ink3, fontSize: 10, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.4 },
+  honorValueSmall: { color: T.color.ink, fontSize: 14, fontFamily: 'SchibstedGrotesk_800ExtraBold', marginTop: 0 },
+  honorSubSmall: { color: T.color.ink2, fontSize: 11, fontFamily: 'HankenGrotesk_500Medium' },
 });
