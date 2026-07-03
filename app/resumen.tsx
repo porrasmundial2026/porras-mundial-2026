@@ -12,7 +12,10 @@ import { Group, Match, Prediction, RankingEntry, UserProfile } from '../types';
 import { PHASE_LABELS } from '../constants/matches';
 import { T } from '../constants/theme';
 
-const { width: SCREEN_W } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+// Altura acotada para las listas dentro de las slides (igual que el maxHeight
+// del modal del ranking, que es el patrón que funciona en web y móvil).
+const LIST_MAX_H = Math.max(260, SCREEN_H - 260);
 
 // Semilla estable por nombre (para chistes/motes que no cambian en cada render)
 function seedOf(s: string) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
@@ -421,7 +424,7 @@ export default function ResumenScreen() {
     if (curiosidades.length > 0) arr.push({ key: 'curiosidades', render: () => (
       <View style={[styles.slideInner, { paddingTop: 30 }]}>
         <FadeIn><Text style={styles.title}>Curiosidades</Text></FadeIn>
-        <ScrollView style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
+        <ScrollView style={{ maxHeight: LIST_MAX_H, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
           {curiosidades.map((c, i) => (
             <FadeIn key={c.label} delay={150 + i * 100}>
               <View style={[styles.honorRow, styles.honorRowCompact]}>
@@ -451,7 +454,7 @@ export default function ResumenScreen() {
     if (honores.length > 0) arr.push({ key: 'honores', render: () => (
       <View style={[styles.slideInner, { paddingTop: 30 }]}>
         <FadeIn><Text style={styles.title}>Honores del grupo</Text></FadeIn>
-        <ScrollView style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
+        <ScrollView style={{ maxHeight: LIST_MAX_H, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
           {honores.map((h, i) => (
             <FadeIn key={h.label} delay={150 + i * 100}>
               <View style={[styles.honorRow, styles.honorRowCompact]}>
@@ -490,7 +493,7 @@ export default function ResumenScreen() {
     arr.push({ key: 'fichas', render: () => (
       <View style={[styles.slideInner, { paddingTop: 24 }]}>
         <Text style={styles.title}>Las fichas del grupo</Text>
-        <ScrollView style={{ flex: 1, width: '100%', marginTop: 12 }} contentContainerStyle={{ gap: 10, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
+        <ScrollView style={{ maxHeight: LIST_MAX_H, width: '100%', marginTop: 12 }} contentContainerStyle={{ gap: 10, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
           {stats.perPlayer.map((pl) => (
             <View key={pl.userId} style={styles.fichaCard}>
               <Text style={styles.fichaEmoji}>{pl.emoji}</Text>
@@ -509,7 +512,7 @@ export default function ResumenScreen() {
     arr.push({ key: 'final', render: () => (
       <View style={[styles.slideInner, { paddingTop: 24 }]}>
         <Text style={styles.title}>Clasificación final</Text>
-        <ScrollView style={{ flex: 1, marginTop: 16, width: '100%' }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
+        <ScrollView style={{ maxHeight: LIST_MAX_H, marginTop: 16, width: '100%' }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
           {ranking.map((e, i) => (
             <View key={e.userId} style={styles.rankRow}>
               <Text style={[styles.rankPos, i < 3 && { color: T.color.accent }]}>{i + 1}</Text>
