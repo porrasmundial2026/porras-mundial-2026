@@ -188,11 +188,12 @@ export default function ResumenScreen() {
       return l.charAt(0).toUpperCase() + l.slice(1);
     };
 
-    // ---- Ficha por jugador ----
+    // ---- Ficha por jugador (métricas; el mote se asigna después, sin repetir) ----
     const perPlayer = members.map((mem) => {
       const myPreds = predictions.filter((p) => p.userId === mem.userId && resultMap.has(p.matchId));
       const dayPts = new Map<string, number>();
-      for (const p of myPreds) { const m = resultMap.get(p.matchId)!; const k = dayKey(m); dayPts.set(k, (dayPts.get(k) ?? 0) + calculatePoints(p, m)); }
+      let zeros = 0;
+      for (const p of myPreds) { const m = resultMap.get(p.matchId)!; const pts = calculatePoints(p, m); const k = dayKey(m); dayPts.set(k, (dayPts.get(k) ?? 0) + pts); if (pts === 0) zeros++; }
       let bestD = { k: '', pts: -1 }, worstD = { k: '', pts: Infinity };
       for (const [k, pts] of dayPts) { if (pts > bestD.pts) bestD = { k, pts }; if (pts < worstD.pts) worstD = { k, pts }; }
 
@@ -203,29 +204,62 @@ export default function ResumenScreen() {
         if (modeByMatch.get(p.matchId) === `${p.homeScore}-${p.awayScore}`) conform++;
         tot++;
       }
-      const avgGoals = tot ? goals / tot : 0;
-      const drawRatio = tot ? draws / tot : 0;
-      const conformRatio = tot ? conform / tot : 0;
-      let mote = 'El equilibrado';
-      if (drawRatio > 0.4) mote = 'El empate-fácil';
-      else if (avgGoals >= 3.2) mote = 'El goleador';
-      else if (avgGoals <= 1.6) mote = 'El cerrojo';
-      else if (conformRatio >= 0.6) mote = 'La oveja';
-      else if (conformRatio <= 0.25 && tot >= 3) mote = 'El rebelde';
-
       const entry = ranking.find((r) => r.userId === mem.userId);
-      const seed = seedOf(mem.displayName);
       return {
+        userId: mem.userId,
         name: mem.displayName,
         points: entry?.totalPoints ?? 0,
         exactHits: entry?.exactHits ?? 0,
+        resultHits: entry?.resultHits ?? 0,
         pos: ranking.findIndex((r) => r.userId === mem.userId) + 1,
         bestDay: { label: labelOf(bestD.k), pts: bestD.pts < 0 ? 0 : bestD.pts },
         worstDay: { label: labelOf(worstD.k), pts: worstD.pts === Infinity ? 0 : worstD.pts },
-        mote,
-        joke: pick(JOKES, seed).replace('{name}', mem.displayName),
+        avgGoals: tot ? goals / tot : 0,
+        drawRatio: tot ? draws / tot : 0,
+        conformRatio: tot ? conform / tot : 0,
+        goalsSum: goals,
+        zeros,
+        mote: 'El jugador',
+        emoji: '👤',
+        joke: pick(JOKES, seedOf(mem.displayName)).replace('{name}', mem.displayName),
       };
     });
+
+    // Asignación de motes ÚNICOS: cada "premio" va al que mejor encaja (greedy)
+    const awards: { mote: string; emoji: string; m: (p: typeof perPlayer[number]) => number }[] = [
+      { mote: 'El goleador', emoji: '🎯', m: (p) => p.avgGoals },
+      { mote: 'El cerrojo', emoji: '🔒', m: (p) => -p.avgGoals },
+      { mote: 'El del pelotazo', emoji: '🔮', m: (p) => p.exactHits },
+      { mote: 'El empate-fácil', emoji: '🤝', m: (p) => p.drawRatio },
+      { mote: 'La oveja', emoji: '🐑', m: (p) => p.conformRatio },
+      { mote: 'El rebelde', emoji: '😎', m: (p) => -p.conformRatio },
+      { mote: 'El seguro', emoji: '🍀', m: (p) => p.resultHits },
+      { mote: 'El generoso', emoji: '🎁', m: (p) => p.zeros },
+      { mote: 'El artillero', emoji: '💣', m: (p) => p.goalsSum },
+      { mote: 'El tacaño', emoji: '🧊', m: (p) => -p.goalsSum },
+    ];
+    const fillers = [
+      { mote: 'El profeta', emoji: '🧿' }, { mote: 'El kamikaze', emoji: '🪂' }, { mote: 'El intuitivo', emoji: '✨' },
+      { mote: 'El calculador', emoji: '🧮' }, { mote: 'El aventurero', emoji: '🧭' }, { mote: 'El artista', emoji: '🎨' },
+      { mote: 'El veleta', emoji: '🎏' }, { mote: 'El clásico', emoji: '📻' }, { mote: 'El misterioso', emoji: '🕵️' },
+    ];
+    const assigned = new Set<string>();
+    for (const aw of awards) {
+      if (assigned.size >= perPlayer.length) break;
+      let best: typeof perPlayer[number] | null = null, bestVal = -Infinity;
+      for (const p of perPlayer) {
+        if (assigned.has(p.userId)) continue;
+        const v = aw.m(p);
+        if (v > bestVal || (v === bestVal && best && seedOf(p.name) < seedOf(best.name))) { bestVal = v; best = p; }
+      }
+      if (best) { assigned.add(best.userId); best.mote = aw.mote; best.emoji = aw.emoji; }
+    }
+    let fi = 0;
+    for (const p of perPlayer) {
+      if (assigned.has(p.userId)) continue;
+      const f = fillers[fi % fillers.length]; fi++;
+      p.mote = f.mote; p.emoji = f.emoji;
+    }
 
     // ---- Remontada / hundimiento (grupos → final) ----
     const groupRank = buildRanking(members, predictions, groupFin);
@@ -314,35 +348,30 @@ export default function ResumenScreen() {
 
     arr.push({ key: 'podium', render: () => <PodiumSlide podium={podium} active={index === 1} /> });
 
-    if (stats.nostra && stats.nostra.exactHits > 0) arr.push({ key: 'nostra', render: () => (
-      <SlideCard emoji="🔮" label="El Nostradamus" value={stats.nostra.displayName}
-        sub={`${stats.nostra.exactHits} marcadores exactos clavados`} />
-    )});
+    const honores: { emoji: string; label: string; value: string; sub: string }[] = [];
+    if (stats.nostra && stats.nostra.exactHits > 0) honores.push({ emoji: '🔮', label: 'El Nostradamus', value: stats.nostra.displayName, sub: `${stats.nostra.exactHits} marcadores exactos clavados` });
+    if (stats.zeros && stats.zeros.z > 0) honores.push({ emoji: '🫠', label: 'El pupas', value: stats.zeros.name, sub: `${stats.zeros.z} predicciones falladas de pleno` });
+    if (stats.best.pts > 0) honores.push({ emoji: '🔥', label: 'La mejor jornada', value: stats.best.name, sub: `${stats.best.pts} pts el ${cap(stats.bestDayLabel)}` });
+    if (stats.kingGroup) honores.push({ emoji: '👑', label: 'Rey de la fase de grupos', value: stats.kingGroup.displayName, sub: `${stats.kingGroup.totalPoints} pts en la liguilla` });
+    if (stats.kingKo) honores.push({ emoji: '👑', label: 'Rey de la eliminatoria', value: stats.kingKo.displayName, sub: `${stats.kingKo.totalPoints} pts en los cruces` });
 
-    if (stats.zeros && stats.zeros.z > 0) arr.push({ key: 'pupas', render: () => (
-      <SlideCard emoji="🫠" label="El pupas" value={stats.zeros.name}
-        sub={`${stats.zeros.z} predicciones falladas de pleno`} />
-    )});
-
-    if (stats.best.pts > 0) arr.push({ key: 'jornada', render: () => (
-      <SlideCard emoji="🔥" label="La mejor jornada" value={stats.best.name}
-        sub={`${stats.best.pts} pts el ${cap(stats.bestDayLabel)}`} />
-    )});
-
-    if (stats.kingGroup) arr.push({ key: 'reyes', render: () => (
-      <View style={styles.center}>
-        <FadeIn><Text style={styles.emoji}>👑</Text></FadeIn>
-        <FadeIn delay={150}><Text style={styles.label}>Rey de la fase de grupos</Text></FadeIn>
-        <FadeIn delay={250}><Text style={styles.value}>{stats.kingGroup.displayName}</Text></FadeIn>
-        <FadeIn delay={300}><Text style={styles.sub}>{stats.kingGroup.totalPoints} pts en la liguilla</Text></FadeIn>
-        {stats.kingKo && (
-          <>
-            <View style={{ height: 28 }} />
-            <FadeIn delay={450}><Text style={styles.label}>Rey de la eliminatoria</Text></FadeIn>
-            <FadeIn delay={550}><Text style={styles.value}>{stats.kingKo.displayName}</Text></FadeIn>
-            <FadeIn delay={600}><Text style={styles.sub}>{stats.kingKo.totalPoints} pts en los cruces</Text></FadeIn>
-          </>
-        )}
+    if (honores.length > 0) arr.push({ key: 'honores', render: () => (
+      <View style={[styles.slideInner, { paddingTop: 40, justifyContent: 'center' }]}>
+        <FadeIn><Text style={styles.title}>Honores del grupo</Text></FadeIn>
+        <View style={{ width: '100%', marginTop: 18, gap: 10 }}>
+          {honores.map((h, i) => (
+            <FadeIn key={h.label} delay={150 + i * 130}>
+              <View style={styles.honorRow}>
+                <Text style={styles.honorEmoji}>{h.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.honorLabel}>{h.label}</Text>
+                  <Text style={styles.honorValue}>{h.value}</Text>
+                  <Text style={styles.honorSub}>{h.sub}</Text>
+                </View>
+              </View>
+            </FadeIn>
+          ))}
+        </View>
       </View>
     )});
 
@@ -479,21 +508,25 @@ export default function ResumenScreen() {
       </View>
     )});
 
-    // Ficha por jugador (una slide cada uno)
-    for (const pl of stats.perPlayer) {
-      arr.push({ key: `pl-${pl.name}`, render: () => (
-        <View style={styles.center}>
-          <FadeIn><Text style={styles.emoji}>{MOTE_EMOJI[pl.mote] ?? '👤'}</Text></FadeIn>
-          <FadeIn delay={120}><Text style={styles.value}>{pl.name}</Text></FadeIn>
-          <FadeIn delay={220}><Text style={styles.moteTag}>«{pl.mote}»</Text></FadeIn>
-          <FadeIn delay={330}><Text style={styles.sub}>{pl.pos}º · {pl.points} pts · {pl.exactHits} exactos</Text></FadeIn>
-          <View style={{ height: 14 }} />
-          <FadeIn delay={450}><Text style={styles.fichaLine}>🔥 Mejor día: {pl.bestDay.label || '—'} ({pl.bestDay.pts} pts)</Text></FadeIn>
-          <FadeIn delay={550}><Text style={styles.fichaLine}>🫠 Peor día: {pl.worstDay.label || '—'} ({pl.worstDay.pts} pts)</Text></FadeIn>
-          <FadeIn delay={720}><Text style={styles.joke}>{pl.joke}</Text></FadeIn>
-        </View>
-      )});
-    }
+    // Ficha de cada jugador, todas en una slide
+    arr.push({ key: 'fichas', render: () => (
+      <View style={[styles.slideInner, { paddingTop: 24 }]}>
+        <Text style={styles.title}>Las fichas del grupo</Text>
+        <ScrollView style={{ width: '100%', marginTop: 12 }} contentContainerStyle={{ gap: 10, paddingBottom: 40 }}>
+          {stats.perPlayer.map((pl) => (
+            <View key={pl.userId} style={styles.fichaCard}>
+              <Text style={styles.fichaEmoji}>{pl.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fichaName} numberOfLines={1}>{pl.name} · <Text style={styles.fichaMote}>{pl.mote}</Text></Text>
+                <Text style={styles.fichaStats}>{pl.pos}º · {pl.points} pts · {pl.exactHits} exactos</Text>
+                <Text style={styles.fichaDay}>🔥 {pl.bestDay.label || '—'} ({pl.bestDay.pts})   ·   🫠 {pl.worstDay.label || '—'} ({pl.worstDay.pts})</Text>
+                <Text style={styles.fichaJoke}>{pl.joke}</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    )});
 
     arr.push({ key: 'final', render: () => (
       <View style={[styles.slideInner, { paddingTop: 60 }]}>
@@ -689,4 +722,16 @@ const styles = StyleSheet.create({
   fichaLine: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', marginVertical: 2 },
   joke: { color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', fontStyle: 'italic', textAlign: 'center', marginTop: 18, paddingHorizontal: 8 },
   caminoRound: { width: 96, color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold' },
+  fichaCard: { flexDirection: 'row', gap: 12, backgroundColor: T.color.surface, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: T.color.line },
+  fichaEmoji: { fontSize: 30 },
+  fichaName: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
+  fichaMote: { color: T.color.accent, fontFamily: 'HankenGrotesk_700Bold' },
+  fichaStats: { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', marginTop: 1 },
+  fichaDay: { color: T.color.ink2, fontSize: 11, fontFamily: 'HankenGrotesk_500Medium', marginTop: 3 },
+  fichaJoke: { color: T.color.ink2, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', fontStyle: 'italic', marginTop: 5 },
+  honorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: T.color.surface, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: T.color.line },
+  honorEmoji: { fontSize: 28 },
+  honorLabel: { color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.5 },
+  honorValue: { color: T.color.ink, fontSize: 17, fontFamily: 'SchibstedGrotesk_800ExtraBold', marginTop: 1 },
+  honorSub: { color: T.color.ink2, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', marginTop: 1 },
 });
