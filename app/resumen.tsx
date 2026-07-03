@@ -14,6 +14,32 @@ import { T } from '../constants/theme';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
+// Semilla estable por nombre (para chistes/motes que no cambian en cada render)
+function seedOf(s: string) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+function pick<T>(arr: T[], seed: number): T { return arr[seed % arr.length]; }
+
+const JOKES = [
+  '{name} predijo con el corazón… y el corazón no sabe de fútbol 💔',
+  'Dicen que {name} vio todos los partidos. Los resultados dicen que no ⚽🙈',
+  'La bola de cristal de {name} necesita una revisión técnica 🔮🔧',
+  '{name} apostaba con tanta fe que hasta el árbitro se emocionó 😇',
+  'Lo de {name} no es mala suerte, es… un estilo de vida 🃏',
+  '{name}: experto en decir "lo tenía clarísimo" DESPUÉS del partido 🧠',
+  'Si {name} fuera seleccionador, aún estaríamos en la fase de grupos 😅',
+  '{name} juega la porra como yo el ajedrez: con mucha confianza y poco criterio ♟️',
+  'Cada predicción de {name} es una aventura. Un thriller. A veces, terror 🎬',
+  '{name} tiene un plan infalible… que falla infaliblemente 📉',
+  'Aplausos para {name}, que convierte el fútbol en una lotería 🎰',
+  '{name} demostró que predecir es un arte. Uno muy abstracto 🎨',
+];
+
+const MOTE_EMOJI: Record<string, string> = {
+  'El goleador': '🎯', 'El cerrojo': '🔒', 'El empate-fácil': '🤝',
+  'La oveja': '🐑', 'El rebelde': '😎', 'El equilibrado': '⚖️',
+};
+
+function fmtLead(h: number) { return h >= 48 ? `${Math.round(h / 24)} días antes` : `${Math.round(h)} h antes`; }
+
 // ---- Pequeño componente de aparición suave ----
 function FadeIn({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: any }) {
   const op = useRef(new Animated.Value(0)).current;
@@ -139,7 +165,135 @@ export default function ResumenScreen() {
       else if (finalMatch.penaltyWinner) champion = finalMatch.penaltyWinner === 'home' ? finalMatch.homeTeam : finalMatch.awayTeam;
     }
 
-    return { nostra, zeros, best, bestDayLabel, kingGroup, kingKo, totalGoals, closest, goalsList, wildest, champion, playedCount: finished.length };
+    // ---- Predicciones por partido (moda, conformista/rebelde, sorpresa) ----
+    const predsByMatch = new Map<string, Prediction[]>();
+    for (const p of predictions) {
+      if (!resultMap.has(p.matchId)) continue;
+      if (!predsByMatch.has(p.matchId)) predsByMatch.set(p.matchId, []);
+      predsByMatch.get(p.matchId)!.push(p);
+    }
+    const modeByMatch = new Map<string, string>();
+    for (const [mid, ps] of predsByMatch) {
+      const counts = new Map<string, number>();
+      for (const p of ps) { const k = `${p.homeScore}-${p.awayScore}`; counts.set(k, (counts.get(k) ?? 0) + 1); }
+      let bestK = '', bestC = -1;
+      for (const [k, c] of counts) if (c > bestC) { bestC = c; bestK = k; }
+      modeByMatch.set(mid, bestK);
+    }
+
+    const labelOf = (k: string) => {
+      if (!k) return '';
+      const [y, mo, d] = k.split('-').map(Number);
+      const l = new Date(y, mo, d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      return l.charAt(0).toUpperCase() + l.slice(1);
+    };
+
+    // ---- Ficha por jugador ----
+    const perPlayer = members.map((mem) => {
+      const myPreds = predictions.filter((p) => p.userId === mem.userId && resultMap.has(p.matchId));
+      const dayPts = new Map<string, number>();
+      for (const p of myPreds) { const m = resultMap.get(p.matchId)!; const k = dayKey(m); dayPts.set(k, (dayPts.get(k) ?? 0) + calculatePoints(p, m)); }
+      let bestD = { k: '', pts: -1 }, worstD = { k: '', pts: Infinity };
+      for (const [k, pts] of dayPts) { if (pts > bestD.pts) bestD = { k, pts }; if (pts < worstD.pts) worstD = { k, pts }; }
+
+      let goals = 0, draws = 0, conform = 0, tot = 0;
+      for (const p of myPreds) {
+        goals += p.homeScore + p.awayScore;
+        if (p.homeScore === p.awayScore) draws++;
+        if (modeByMatch.get(p.matchId) === `${p.homeScore}-${p.awayScore}`) conform++;
+        tot++;
+      }
+      const avgGoals = tot ? goals / tot : 0;
+      const drawRatio = tot ? draws / tot : 0;
+      const conformRatio = tot ? conform / tot : 0;
+      let mote = 'El equilibrado';
+      if (drawRatio > 0.4) mote = 'El empate-fácil';
+      else if (avgGoals >= 3.2) mote = 'El goleador';
+      else if (avgGoals <= 1.6) mote = 'El cerrojo';
+      else if (conformRatio >= 0.6) mote = 'La oveja';
+      else if (conformRatio <= 0.25 && tot >= 3) mote = 'El rebelde';
+
+      const entry = ranking.find((r) => r.userId === mem.userId);
+      const seed = seedOf(mem.displayName);
+      return {
+        name: mem.displayName,
+        points: entry?.totalPoints ?? 0,
+        exactHits: entry?.exactHits ?? 0,
+        pos: ranking.findIndex((r) => r.userId === mem.userId) + 1,
+        bestDay: { label: labelOf(bestD.k), pts: bestD.pts < 0 ? 0 : bestD.pts },
+        worstDay: { label: labelOf(worstD.k), pts: worstD.pts === Infinity ? 0 : worstD.pts },
+        mote,
+        joke: pick(JOKES, seed).replace('{name}', mem.displayName),
+      };
+    });
+
+    // ---- Remontada / hundimiento (grupos → final) ----
+    const groupRank = buildRanking(members, predictions, groupFin);
+    const groupPos = new Map(groupRank.map((r, i) => [r.userId, i + 1]));
+    const finalPos = new Map(ranking.map((r, i) => [r.userId, i + 1]));
+    let remont = { name: '', delta: 0 }, hund = { name: '', delta: 0 };
+    for (const mem of members) {
+      const gp = groupPos.get(mem.userId), fp = finalPos.get(mem.userId);
+      if (gp == null || fp == null) continue;
+      const delta = gp - fp;
+      if (delta > remont.delta) remont = { name: mem.displayName, delta };
+      if (delta < hund.delta) hund = { name: mem.displayName, delta };
+    }
+
+    // ---- Madrugador / dormilón (updatedAt vs hora del partido) ----
+    const toDate = (v: any): Date | null => (v?.toDate ? v.toDate() : v instanceof Date ? v : null);
+    let madr = { name: '', h: -1 }, dorm = { name: '', h: Infinity };
+    for (const mem of members) {
+      let sum = 0, n = 0;
+      for (const p of predictions.filter((x) => x.userId === mem.userId)) {
+        const m = resultMap.get(p.matchId); if (!m) continue;
+        const u = toDate(p.updatedAt); if (!u) continue;
+        const lead = (new Date(m.scheduledAt).getTime() - u.getTime()) / 3600000;
+        if (lead > 0) { sum += lead; n++; }
+      }
+      if (n > 0) { const avg = sum / n; if (avg > madr.h) madr = { name: mem.displayName, h: avg }; if (avg < dorm.h) dorm = { name: mem.displayName, h: avg }; }
+    }
+
+    // ---- Duelo de tortolitos (predicciones más parecidas) ----
+    let tort = { a: '', b: '', n: -1 };
+    for (let i = 0; i < members.length; i++) for (let j = i + 1; j < members.length; j++) {
+      const A = members[i], B = members[j];
+      const pa = predictions.filter((p) => p.userId === A.userId && resultMap.has(p.matchId));
+      let same = 0;
+      for (const p of pa) { const q = predictions.find((x) => x.userId === B.userId && x.matchId === p.matchId); if (q && q.homeScore === p.homeScore && q.awayScore === p.awayScore) same++; }
+      if (same > tort.n) tort = { a: A.displayName, b: B.displayName, n: same };
+    }
+
+    // ---- La sorpresa del torneo (partido que menos gente acertó) ----
+    let surp: { match: Match | null; pct: number } = { match: null, pct: 2 };
+    for (const [mid, ps] of predsByMatch) {
+      if (ps.length < 3) continue;
+      const m = resultMap.get(mid)!;
+      const hit = ps.filter((p) => calculatePoints(p, m) > 0).length;
+      const pct = hit / ps.length;
+      if (pct < surp.pct) surp = { match: m, pct };
+    }
+
+    // ---- Muermos y tandas ----
+    const muermos = finished.filter((m) => m.homeScore === 0 && m.awayScore === 0).length;
+    const tandas = finished.filter((m) => (m as any).penaltyWinner).length;
+
+    // ---- Camino del campeón ----
+    let camino: { round: string; rival: string; gf: number; ga: number; pens: boolean }[] = [];
+    if (champion) {
+      camino = finished
+        .filter((m) => m.phase !== 'group' && (m.homeTeam === champion || m.awayTeam === champion))
+        .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+        .map((m) => {
+          const home = m.homeTeam === champion;
+          return { round: PHASE_LABELS[m.phase], rival: home ? m.awayTeam : m.homeTeam, gf: (home ? m.homeScore : m.awayScore) ?? 0, ga: (home ? m.awayScore : m.homeScore) ?? 0, pens: !!(m as any).penaltyWinner };
+        });
+    }
+
+    return {
+      nostra, zeros, best, bestDayLabel, kingGroup, kingKo, totalGoals, closest, goalsList, wildest, champion, playedCount: finished.length,
+      perPlayer, remont, hund, madr, dorm, tort, surp, muermos, tandas, camino,
+    };
   }, [members, predictions, finished, ranking, liveMatches]);
 
   // ---- Definición de slides ----
@@ -236,6 +390,110 @@ export default function ResumenScreen() {
         <FadeIn delay={500}><Text style={styles.value}>{stats.champion}</Text></FadeIn>
       </View>
     )});
+
+    if (stats.remont.delta > 0 || stats.hund.delta < 0) arr.push({ key: 'remontada', render: () => (
+      <View style={styles.center}>
+        {stats.remont.delta > 0 && (
+          <>
+            <FadeIn><Text style={styles.emoji}>📈</Text></FadeIn>
+            <FadeIn delay={120}><Text style={styles.label}>La remontada</Text></FadeIn>
+            <FadeIn delay={220}><Text style={styles.value}>{stats.remont.name}</Text></FadeIn>
+            <FadeIn delay={300}><Text style={styles.sub}>subió {stats.remont.delta} puesto{stats.remont.delta > 1 ? 's' : ''} desde la fase de grupos</Text></FadeIn>
+          </>
+        )}
+        {stats.hund.delta < 0 && (
+          <>
+            <View style={{ height: 26 }} />
+            <FadeIn delay={420}><Text style={styles.emoji}>📉</Text></FadeIn>
+            <FadeIn delay={500}><Text style={styles.label}>El hundimiento</Text></FadeIn>
+            <FadeIn delay={560}><Text style={styles.value}>{stats.hund.name}</Text></FadeIn>
+            <FadeIn delay={620}><Text style={styles.sub}>se dejó {Math.abs(stats.hund.delta)} puesto{Math.abs(stats.hund.delta) > 1 ? 's' : ''} por el camino</Text></FadeIn>
+          </>
+        )}
+      </View>
+    )});
+
+    if (stats.madr.name) arr.push({ key: 'horario', render: () => (
+      <View style={styles.center}>
+        <FadeIn><Text style={styles.emoji}>⏰</Text></FadeIn>
+        <FadeIn delay={120}><Text style={styles.label}>El madrugador</Text></FadeIn>
+        <FadeIn delay={220}><Text style={styles.value}>{stats.madr.name}</Text></FadeIn>
+        <FadeIn delay={300}><Text style={styles.sub}>predecía de media {fmtLead(stats.madr.h)}</Text></FadeIn>
+        {stats.dorm.name && stats.dorm.name !== stats.madr.name && (
+          <>
+            <View style={{ height: 26 }} />
+            <FadeIn delay={440}><Text style={styles.emoji}>😴</Text></FadeIn>
+            <FadeIn delay={520}><Text style={styles.label}>El dormilón</Text></FadeIn>
+            <FadeIn delay={580}><Text style={styles.value}>{stats.dorm.name}</Text></FadeIn>
+            <FadeIn delay={640}><Text style={styles.sub}>a última hora: {fmtLead(stats.dorm.h)}</Text></FadeIn>
+          </>
+        )}
+      </View>
+    )});
+
+    if (stats.tort.n > 0) arr.push({ key: 'tortolitos', render: () => (
+      <SlideCard emoji="💑" label="Duelo de tortolitos" value={`${stats.tort.a} & ${stats.tort.b}`} sub={`${stats.tort.n} predicciones idénticas… ¿os copiáis? 👀`} />
+    )});
+
+    if (stats.surp.match) arr.push({ key: 'sorpresa', render: () => (
+      <View style={styles.center}>
+        <FadeIn><Text style={styles.emoji}>😱</Text></FadeIn>
+        <FadeIn delay={120}><Text style={styles.label}>La sorpresa del torneo</Text></FadeIn>
+        <FadeIn delay={260}>
+          <View style={styles.matchRow}>
+            <Flag team={stats.surp.match!.homeTeam} size={24} />
+            <Text style={styles.matchScore}>{stats.surp.match!.homeScore} – {stats.surp.match!.awayScore}</Text>
+            <Flag team={stats.surp.match!.awayTeam} size={24} />
+          </View>
+        </FadeIn>
+        <FadeIn delay={380}><Text style={styles.sub}>{stats.surp.match!.homeTeam} vs {stats.surp.match!.awayTeam}</Text></FadeIn>
+        <FadeIn delay={480}><Text style={styles.hint}>Solo un {Math.round(stats.surp.pct * 100)}% del grupo lo vio venir</Text></FadeIn>
+      </View>
+    )});
+
+    arr.push({ key: 'datos', render: () => (
+      <View style={styles.center}>
+        <FadeIn><Text style={styles.emoji}>📊</Text></FadeIn>
+        <FadeIn delay={120}><Text style={styles.label}>Datos del Mundial</Text></FadeIn>
+        <FadeIn delay={240}><Text style={styles.fichaLine}>⚽ Media de goles: {stats.playedCount ? (stats.totalGoals / stats.playedCount).toFixed(2) : '0'} por partido</Text></FadeIn>
+        <FadeIn delay={340}><Text style={styles.fichaLine}>😴 Partidos 0-0: {stats.muermos}</Text></FadeIn>
+        <FadeIn delay={440}><Text style={styles.fichaLine}>🥅 Tandas de penaltis: {stats.tandas}</Text></FadeIn>
+      </View>
+    )});
+
+    if (stats.camino.length > 0) arr.push({ key: 'camino', render: () => (
+      <View style={[styles.slideInner, { justifyContent: 'center' }]}>
+        <FadeIn><Text style={[styles.emoji, { textAlign: 'center' }]}>🛤️</Text></FadeIn>
+        <FadeIn delay={120}><Text style={styles.label}>El camino del campeón</Text></FadeIn>
+        <FadeIn delay={220}><Text style={[styles.value, { textAlign: 'center' }]}>{stats.champion}</Text></FadeIn>
+        <View style={{ height: 12 }} />
+        {stats.camino.map((c, i) => (
+          <FadeIn key={i} delay={300 + i * 90} style={{ width: '100%' }}>
+            <View style={styles.rankRow}>
+              <Text style={styles.caminoRound}>{c.round}</Text>
+              <Text style={styles.rankName} numberOfLines={1}>{c.rival}</Text>
+              <Text style={styles.rankPts}>{c.gf}-{c.ga}{c.pens ? ' (p)' : ''}</Text>
+            </View>
+          </FadeIn>
+        ))}
+      </View>
+    )});
+
+    // Ficha por jugador (una slide cada uno)
+    for (const pl of stats.perPlayer) {
+      arr.push({ key: `pl-${pl.name}`, render: () => (
+        <View style={styles.center}>
+          <FadeIn><Text style={styles.emoji}>{MOTE_EMOJI[pl.mote] ?? '👤'}</Text></FadeIn>
+          <FadeIn delay={120}><Text style={styles.value}>{pl.name}</Text></FadeIn>
+          <FadeIn delay={220}><Text style={styles.moteTag}>«{pl.mote}»</Text></FadeIn>
+          <FadeIn delay={330}><Text style={styles.sub}>{pl.pos}º · {pl.points} pts · {pl.exactHits} exactos</Text></FadeIn>
+          <View style={{ height: 14 }} />
+          <FadeIn delay={450}><Text style={styles.fichaLine}>🔥 Mejor día: {pl.bestDay.label || '—'} ({pl.bestDay.pts} pts)</Text></FadeIn>
+          <FadeIn delay={550}><Text style={styles.fichaLine}>🫠 Peor día: {pl.worstDay.label || '—'} ({pl.worstDay.pts} pts)</Text></FadeIn>
+          <FadeIn delay={720}><Text style={styles.joke}>{pl.joke}</Text></FadeIn>
+        </View>
+      )});
+    }
 
     arr.push({ key: 'final', render: () => (
       <View style={[styles.slideInner, { paddingTop: 60 }]}>
@@ -427,4 +685,8 @@ const styles = StyleSheet.create({
   arrowLeft: { left: 10 },
   arrowRight: { right: 10 },
   arrowTxt: { color: T.color.accent, fontSize: 30, fontFamily: 'SchibstedGrotesk_800ExtraBold', lineHeight: 34, marginTop: -2 },
+  moteTag: { color: T.color.accent, fontSize: 17, fontFamily: 'HankenGrotesk_700Bold', textAlign: 'center' },
+  fichaLine: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', marginVertical: 2 },
+  joke: { color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', fontStyle: 'italic', textAlign: 'center', marginTop: 18, paddingHorizontal: 8 },
+  caminoRound: { width: 96, color: T.color.ink3, fontSize: 11, fontFamily: 'HankenGrotesk_700Bold' },
 });
