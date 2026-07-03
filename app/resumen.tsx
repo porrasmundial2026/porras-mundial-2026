@@ -416,21 +416,6 @@ export default function ResumenScreen() {
       </View>
     )});
 
-    if (stats.wildest) arr.push({ key: 'loco', render: () => (
-      <View style={styles.center}>
-        <FadeIn><Text style={styles.emoji}>🤯</Text></FadeIn>
-        <FadeIn delay={150}><Text style={styles.label}>El partido más loco</Text></FadeIn>
-        <FadeIn delay={300}>
-          <View style={styles.matchRow}>
-            <Flag team={stats.wildest.homeTeam} size={26} />
-            <Text style={styles.matchScore}>{stats.wildest.homeScore} – {stats.wildest.awayScore}</Text>
-            <Flag team={stats.wildest.awayTeam} size={26} />
-          </View>
-        </FadeIn>
-        <FadeIn delay={400}><Text style={styles.sub}>{stats.wildest.homeTeam} vs {stats.wildest.awayTeam} · {(stats.wildest.homeScore ?? 0) + (stats.wildest.awayScore ?? 0)} goles</Text></FadeIn>
-      </View>
-    )});
-
     if (stats.champion) arr.push({ key: 'campeon', render: () => (
       <View style={styles.center}>
         <FadeIn><Text style={styles.emoji}>🌍</Text></FadeIn>
@@ -440,73 +425,46 @@ export default function ResumenScreen() {
       </View>
     )});
 
-    if (stats.remont.delta > 0 || stats.hund.delta < 0) arr.push({ key: 'remontada', render: () => (
-      <View style={styles.center}>
-        {stats.remont.delta > 0 && (
-          <>
-            <FadeIn><Text style={styles.emoji}>📈</Text></FadeIn>
-            <FadeIn delay={120}><Text style={styles.label}>La remontada</Text></FadeIn>
-            <FadeIn delay={220}><Text style={styles.value}>{stats.remont.name}</Text></FadeIn>
-            <FadeIn delay={300}><Text style={styles.sub}>subió {stats.remont.delta} puesto{stats.remont.delta > 1 ? 's' : ''} desde la fase de grupos</Text></FadeIn>
-          </>
-        )}
-        {stats.hund.delta < 0 && (
-          <>
-            <View style={{ height: 26 }} />
-            <FadeIn delay={420}><Text style={styles.emoji}>📉</Text></FadeIn>
-            <FadeIn delay={500}><Text style={styles.label}>El hundimiento</Text></FadeIn>
-            <FadeIn delay={560}><Text style={styles.value}>{stats.hund.name}</Text></FadeIn>
-            <FadeIn delay={620}><Text style={styles.sub}>se dejó {Math.abs(stats.hund.delta)} puesto{Math.abs(stats.hund.delta) > 1 ? 's' : ''} por el camino</Text></FadeIn>
-          </>
-        )}
-      </View>
-    )});
+    // Curiosidades: se agrupan todas en una sola slide compacta con scroll
+    const curiosidades: { emoji: string; label: string; value: string; sub: string }[] = [];
+    if (stats.wildest) curiosidades.push({
+      emoji: '🤯', label: 'El partido más loco',
+      value: `${stats.wildest.homeTeam} ${stats.wildest.homeScore}–${stats.wildest.awayScore} ${stats.wildest.awayTeam}`,
+      sub: `${(stats.wildest.homeScore ?? 0) + (stats.wildest.awayScore ?? 0)} goles en un partido`,
+    });
+    if (stats.remont.delta > 0) curiosidades.push({ emoji: '📈', label: 'La remontada', value: stats.remont.name, sub: `subió ${stats.remont.delta} puesto${stats.remont.delta > 1 ? 's' : ''} desde la fase de grupos` });
+    if (stats.hund.delta < 0) curiosidades.push({ emoji: '📉', label: 'El hundimiento', value: stats.hund.name, sub: `se dejó ${Math.abs(stats.hund.delta)} puesto${Math.abs(stats.hund.delta) > 1 ? 's' : ''} por el camino` });
+    if (stats.madr.name) curiosidades.push({ emoji: '⏰', label: 'El madrugador', value: stats.madr.name, sub: `predecía de media ${fmtLead(stats.madr.h)}` });
+    if (stats.dorm.name && stats.dorm.name !== stats.madr.name) curiosidades.push({ emoji: '😴', label: 'El dormilón', value: stats.dorm.name, sub: `a última hora: ${fmtLead(stats.dorm.h)}` });
+    if (stats.tort.n > 0) curiosidades.push({ emoji: '💑', label: 'Duelo de tortolitos', value: `${stats.tort.a} & ${stats.tort.b}`, sub: `${stats.tort.n} predicciones idénticas… ¿os copiáis? 👀` });
+    if (stats.surp.match) curiosidades.push({
+      emoji: '😱', label: 'La sorpresa del torneo',
+      value: `${stats.surp.match.homeTeam} ${stats.surp.match.homeScore}–${stats.surp.match.awayScore} ${stats.surp.match.awayTeam}`,
+      sub: `solo un ${Math.round(stats.surp.pct * 100)}% del grupo lo vio venir`,
+    });
+    curiosidades.push({
+      emoji: '📊', label: 'Datos del Mundial',
+      value: `${stats.playedCount ? (stats.totalGoals / stats.playedCount).toFixed(2) : '0'} goles/partido`,
+      sub: `${stats.muermos} partidos 0-0 · ${stats.tandas} tandas de penaltis`,
+    });
 
-    if (stats.madr.name) arr.push({ key: 'horario', render: () => (
-      <View style={styles.center}>
-        <FadeIn><Text style={styles.emoji}>⏰</Text></FadeIn>
-        <FadeIn delay={120}><Text style={styles.label}>El madrugador</Text></FadeIn>
-        <FadeIn delay={220}><Text style={styles.value}>{stats.madr.name}</Text></FadeIn>
-        <FadeIn delay={300}><Text style={styles.sub}>predecía de media {fmtLead(stats.madr.h)}</Text></FadeIn>
-        {stats.dorm.name && stats.dorm.name !== stats.madr.name && (
-          <>
-            <View style={{ height: 26 }} />
-            <FadeIn delay={440}><Text style={styles.emoji}>😴</Text></FadeIn>
-            <FadeIn delay={520}><Text style={styles.label}>El dormilón</Text></FadeIn>
-            <FadeIn delay={580}><Text style={styles.value}>{stats.dorm.name}</Text></FadeIn>
-            <FadeIn delay={640}><Text style={styles.sub}>a última hora: {fmtLead(stats.dorm.h)}</Text></FadeIn>
-          </>
-        )}
-      </View>
-    )});
-
-    if (stats.tort.n > 0) arr.push({ key: 'tortolitos', render: () => (
-      <SlideCard emoji="💑" label="Duelo de tortolitos" value={`${stats.tort.a} & ${stats.tort.b}`} sub={`${stats.tort.n} predicciones idénticas… ¿os copiáis? 👀`} />
-    )});
-
-    if (stats.surp.match) arr.push({ key: 'sorpresa', render: () => (
-      <View style={styles.center}>
-        <FadeIn><Text style={styles.emoji}>😱</Text></FadeIn>
-        <FadeIn delay={120}><Text style={styles.label}>La sorpresa del torneo</Text></FadeIn>
-        <FadeIn delay={260}>
-          <View style={styles.matchRow}>
-            <Flag team={stats.surp.match!.homeTeam} size={24} />
-            <Text style={styles.matchScore}>{stats.surp.match!.homeScore} – {stats.surp.match!.awayScore}</Text>
-            <Flag team={stats.surp.match!.awayTeam} size={24} />
-          </View>
-        </FadeIn>
-        <FadeIn delay={380}><Text style={styles.sub}>{stats.surp.match!.homeTeam} vs {stats.surp.match!.awayTeam}</Text></FadeIn>
-        <FadeIn delay={480}><Text style={styles.hint}>Solo un {Math.round(stats.surp.pct * 100)}% del grupo lo vio venir</Text></FadeIn>
-      </View>
-    )});
-
-    arr.push({ key: 'datos', render: () => (
-      <View style={styles.center}>
-        <FadeIn><Text style={styles.emoji}>📊</Text></FadeIn>
-        <FadeIn delay={120}><Text style={styles.label}>Datos del Mundial</Text></FadeIn>
-        <FadeIn delay={240}><Text style={styles.fichaLine}>⚽ Media de goles: {stats.playedCount ? (stats.totalGoals / stats.playedCount).toFixed(2) : '0'} por partido</Text></FadeIn>
-        <FadeIn delay={340}><Text style={styles.fichaLine}>😴 Partidos 0-0: {stats.muermos}</Text></FadeIn>
-        <FadeIn delay={440}><Text style={styles.fichaLine}>🥅 Tandas de penaltis: {stats.tandas}</Text></FadeIn>
+    if (curiosidades.length > 0) arr.push({ key: 'curiosidades', render: () => (
+      <View style={[styles.slideInner, { paddingTop: 30 }]}>
+        <FadeIn><Text style={styles.title}>Curiosidades</Text></FadeIn>
+        <ScrollView style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
+          {curiosidades.map((c, i) => (
+            <FadeIn key={c.label} delay={150 + i * 100}>
+              <View style={[styles.honorRow, styles.honorRowCompact]}>
+                <Text style={styles.honorEmojiSmall}>{c.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.honorLabelSmall}>{c.label}</Text>
+                  <Text style={styles.honorValueSmall} numberOfLines={1}>{c.value}</Text>
+                  <Text style={styles.honorSubSmall}>{c.sub}</Text>
+                </View>
+              </View>
+            </FadeIn>
+          ))}
+        </ScrollView>
       </View>
     )});
 
