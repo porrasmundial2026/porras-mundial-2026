@@ -239,46 +239,66 @@ export default function ResumenScreen() {
         conformRatio: tot ? conform / tot : 0,
         goalsSum: goals,
         zeros,
+        tot,
         mote: 'El jugador',
         emoji: '👤',
+        motivo: '',
         joke: pick(JOKES, seedOf(mem.displayName)).replace('{name}', mem.displayName),
       };
     });
 
-    // Asignación de motes ÚNICOS: cada "premio" va al que mejor encaja (greedy)
-    const awards: { mote: string; emoji: string; m: (p: typeof perPlayer[number]) => number }[] = [
-      { mote: 'El goleador', emoji: '🎯', m: (p) => p.avgGoals },
-      { mote: 'El cerrojo', emoji: '🔒', m: (p) => -p.avgGoals },
-      { mote: 'El del pelotazo', emoji: '🔮', m: (p) => p.exactHits },
-      { mote: 'El empate-fácil', emoji: '🤝', m: (p) => p.drawRatio },
-      { mote: 'La oveja', emoji: '🐑', m: (p) => p.conformRatio },
-      { mote: 'El rebelde', emoji: '😎', m: (p) => -p.conformRatio },
-      { mote: 'El seguro', emoji: '🍀', m: (p) => p.resultHits },
-      { mote: 'El generoso', emoji: '🎁', m: (p) => p.zeros },
-      { mote: 'El artillero', emoji: '💣', m: (p) => p.goalsSum },
-      { mote: 'El tacaño', emoji: '🧊', m: (p) => -p.goalsSum },
+    // Motes ÚNICOS y con sentido: cada premio se da a quien MÁS destaca en esa
+    // métrica respecto al grupo (valor normalizado), no por orden fijo. Cada
+    // mote lleva su motivo con el dato real que lo justifica.
+    type P = typeof perPlayer[number];
+    const pct = (r: number) => Math.round(r * 100);
+    const awards: { mote: string; emoji: string; m: (p: P) => number; reason: (p: P) => string }[] = [
+      { mote: 'El goleador', emoji: '🎯', m: (p) => p.avgGoals, reason: (p) => `predice ${p.avgGoals.toFixed(1)} goles de media por partido, el que más goles ve` },
+      { mote: 'El cerrojo', emoji: '🔒', m: (p) => -p.avgGoals, reason: (p) => `solo ${p.avgGoals.toFixed(1)} goles de media por partido, el más prudente del grupo` },
+      { mote: 'El del pelotazo', emoji: '🔮', m: (p) => p.exactHits, reason: (p) => `${p.exactHits} marcadores exactos clavados, nadie afinó más` },
+      { mote: 'El empate-fácil', emoji: '🤝', m: (p) => p.drawRatio, reason: (p) => `el ${pct(p.drawRatio)}% de sus predicciones fueron empates` },
+      { mote: 'La oveja', emoji: '🐑', m: (p) => p.conformRatio, reason: (p) => `coincidió con la predicción más repetida del grupo en el ${pct(p.conformRatio)}% de los partidos` },
+      { mote: 'El rebelde', emoji: '😎', m: (p) => -p.conformRatio, reason: (p) => `solo coincidió con la mayoría del grupo en el ${pct(p.conformRatio)}% de los partidos` },
+      { mote: 'El seguro', emoji: '🍀', m: (p) => p.resultHits, reason: (p) => `acertó el ganador en ${p.resultHits} partidos, el que más resultados vio venir` },
+      { mote: 'El generoso', emoji: '🎁', m: (p) => p.zeros, reason: (p) => `${p.zeros} predicciones falladas de pleno, todo un detalle con los rivales` },
+      { mote: 'El alérgico al empate', emoji: '🙅', m: (p) => -p.drawRatio, reason: (p) => `solo el ${pct(p.drawRatio)}% de sus predicciones fueron empates: aquí se viene a ganar` },
+      { mote: 'El artillero', emoji: '💣', m: (p) => p.goalsSum, reason: (p) => `sumó ${p.goalsSum} goles entre todas sus predicciones` },
     ];
-    const fillers = [
-      { mote: 'El profeta', emoji: '🧿' }, { mote: 'El kamikaze', emoji: '🪂' }, { mote: 'El intuitivo', emoji: '✨' },
-      { mote: 'El calculador', emoji: '🧮' }, { mote: 'El aventurero', emoji: '🧭' }, { mote: 'El artista', emoji: '🎨' },
-      { mote: 'El veleta', emoji: '🎏' }, { mote: 'El clásico', emoji: '📻' }, { mote: 'El misterioso', emoji: '🕵️' },
-    ];
-    const assigned = new Set<string>();
+
+    // Normalizamos cada métrica (z-score) y asignamos primero las parejas
+    // jugador-premio más llamativas, para que el mote pegue de verdad.
+    const candidates: { p: P; aw: typeof awards[number]; strength: number }[] = [];
     for (const aw of awards) {
-      if (assigned.size >= perPlayer.length) break;
-      let best: typeof perPlayer[number] | null = null, bestVal = -Infinity;
+      const vals = perPlayer.map((p) => aw.m(p));
+      const mean = vals.reduce((s, v) => s + v, 0) / (vals.length || 1);
+      const std = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / (vals.length || 1)) || 1;
       for (const p of perPlayer) {
-        if (assigned.has(p.userId)) continue;
-        const v = aw.m(p);
-        if (v > bestVal || (v === bestVal && best && seedOf(p.name) < seedOf(best.name))) { bestVal = v; best = p; }
+        if (p.tot < 3) continue; // sin datos suficientes no hay mote temático fiable
+        candidates.push({ p, aw, strength: (aw.m(p) - mean) / std });
       }
-      if (best) { assigned.add(best.userId); best.mote = aw.mote; best.emoji = aw.emoji; }
     }
+    candidates.sort((a, b) => b.strength - a.strength || seedOf(a.p.name) - seedOf(b.p.name));
+    const takenPlayer = new Set<string>();
+    const takenAward = new Set<string>();
+    for (const c of candidates) {
+      if (takenPlayer.has(c.p.userId) || takenAward.has(c.aw.mote)) continue;
+      c.p.mote = c.aw.mote; c.p.emoji = c.aw.emoji; c.p.motivo = c.aw.reason(c.p);
+      takenPlayer.add(c.p.userId); takenAward.add(c.aw.mote);
+    }
+    // A quien no le tocó premio (grupo grande o pocos datos): mote neutro con sus números
+    const fillers = [
+      { mote: 'El equilibrado', emoji: '⚖️' }, { mote: 'El discreto', emoji: '🎩' }, { mote: 'El constante', emoji: '🧱' },
+      { mote: 'El sereno', emoji: '🧘' }, { mote: 'El estratega', emoji: '🧠' }, { mote: 'El clásico', emoji: '📻' },
+    ];
     let fi = 0;
     for (const p of perPlayer) {
-      if (assigned.has(p.userId)) continue;
+      if (takenPlayer.has(p.userId)) continue;
       const f = fillers[fi % fillers.length]; fi++;
       p.mote = f.mote; p.emoji = f.emoji;
+      const aciertos = p.exactHits + p.resultHits;
+      p.motivo = p.tot > 0
+        ? `sin extremos: ${p.avgGoals.toFixed(1)} goles de media y ${pct(aciertos / p.tot)}% de aciertos`
+        : 'aún sin predicciones suficientes para retratarle';
     }
 
     // ---- Remontada / hundimiento (grupos → final) ----
@@ -499,6 +519,7 @@ export default function ResumenScreen() {
               <Text style={styles.fichaEmoji}>{pl.emoji}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fichaName} numberOfLines={1}>{pl.name} · <Text style={styles.fichaMote}>{pl.mote}</Text></Text>
+                {!!pl.motivo && <Text style={styles.fichaMotivo}>{pl.motivo}</Text>}
                 <Text style={styles.fichaStats}>{pl.pos}º · {pl.points} pts · {pl.exactHits} exactos</Text>
                 <Text style={styles.fichaDay}>🔥 {pl.bestDay.label || '—'} ({pl.bestDay.pts})   ·   🫠 {pl.worstDay.label || '—'} ({pl.worstDay.pts})</Text>
                 <Text style={styles.fichaJoke}>{pl.joke}</Text>
@@ -707,6 +728,7 @@ const styles = StyleSheet.create({
   fichaEmoji: { fontSize: 30 },
   fichaName: { color: T.color.ink, fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
   fichaMote: { color: T.color.accent, fontFamily: 'HankenGrotesk_700Bold' },
+  fichaMotivo: { color: T.color.accent, fontSize: 11, fontFamily: 'HankenGrotesk_500Medium', marginTop: 1 },
   fichaStats: { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', marginTop: 1 },
   fichaDay: { color: T.color.ink2, fontSize: 11, fontFamily: 'HankenGrotesk_500Medium', marginTop: 3 },
   fichaJoke: { color: T.color.ink2, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium', fontStyle: 'italic', marginTop: 5 },
