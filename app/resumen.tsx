@@ -418,18 +418,13 @@ export default function ResumenScreen() {
       </View>
     )});
 
-    // Curiosidades: se agrupan todas en una sola slide compacta con scroll
+    // Curiosidades: cosas del Mundial en sí (los premios de jugadores van en Honores)
     const curiosidades: { emoji: string; label: string; value: string; sub: string }[] = [];
     if (stats.wildest) curiosidades.push({
       emoji: '🤯', label: 'El partido más loco',
       value: `${stats.wildest.homeTeam} ${stats.wildest.homeScore}–${stats.wildest.awayScore} ${stats.wildest.awayTeam}`,
       sub: `${(stats.wildest.homeScore ?? 0) + (stats.wildest.awayScore ?? 0)} goles en un partido`,
     });
-    if (stats.remont.delta > 0) curiosidades.push({ emoji: '📈', label: 'La remontada', value: stats.remont.name, sub: `subió ${stats.remont.delta} puesto${stats.remont.delta > 1 ? 's' : ''} desde la fase de grupos` });
-    if (stats.hund.delta < 0) curiosidades.push({ emoji: '📉', label: 'El hundimiento', value: stats.hund.name, sub: `se dejó ${Math.abs(stats.hund.delta)} puesto${Math.abs(stats.hund.delta) > 1 ? 's' : ''} por el camino` });
-    if (stats.madr.name) curiosidades.push({ emoji: '⏰', label: 'El madrugador', value: stats.madr.name, sub: `predecía de media ${fmtLead(stats.madr.h)}` });
-    if (stats.dorm.name && stats.dorm.name !== stats.madr.name) curiosidades.push({ emoji: '😴', label: 'El dormilón', value: stats.dorm.name, sub: `a última hora: ${fmtLead(stats.dorm.h)}` });
-    if (stats.tort.n > 0) curiosidades.push({ emoji: '💑', label: 'Duelo de tortolitos', value: `${stats.tort.a} & ${stats.tort.b}`, sub: `${stats.tort.n} predicciones idénticas… ¿os copiáis? 👀` });
     if (stats.surp.match) curiosidades.push({
       emoji: '😱', label: 'La sorpresa del torneo',
       value: `${stats.surp.match.homeTeam} ${stats.surp.match.homeScore}–${stats.surp.match.awayScore} ${stats.surp.match.awayTeam}`,
@@ -443,7 +438,7 @@ export default function ResumenScreen() {
 
     if (curiosidades.length > 0) arr.push({ key: 'curiosidades', render: () => (
       <View style={[styles.slideInner, { paddingTop: 30 }]}>
-        <FadeIn><Text style={styles.title}>Curiosidades</Text></FadeIn>
+        <FadeIn><Text style={styles.title}>Curiosidades del Mundial</Text></FadeIn>
         <ScrollView style={{ maxHeight: LIST_MAX_H, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
           {curiosidades.map((c, i) => (
             <FadeIn key={c.label} delay={150 + i * 100}>
@@ -470,6 +465,11 @@ export default function ResumenScreen() {
     if (stats.sniper) honores.push({ emoji: '🎖️', label: 'El francotirador', value: stats.sniper.name, sub: `${stats.sniper.ratio.toFixed(1)} pts de media por predicción` });
     if (stats.coldBlood) honores.push({ emoji: '🧊', label: 'Sangre fría', value: stats.coldBlood.displayName, sub: `${stats.coldBlood.totalPoints} pts en la eliminatoria` });
     if (stats.faithful) honores.push({ emoji: '🦉', label: 'El más fiel', value: stats.faithful.name, sub: `no dejó ni un partido sin predecir` });
+    if (stats.remont.delta > 0) honores.push({ emoji: '📈', label: 'La remontada', value: stats.remont.name, sub: `subió ${stats.remont.delta} puesto${stats.remont.delta > 1 ? 's' : ''} desde la fase de grupos` });
+    if (stats.hund.delta < 0) honores.push({ emoji: '📉', label: 'El hundimiento', value: stats.hund.name, sub: `se dejó ${Math.abs(stats.hund.delta)} puesto${Math.abs(stats.hund.delta) > 1 ? 's' : ''} por el camino` });
+    if (stats.madr.name) honores.push({ emoji: '⏰', label: 'El madrugador', value: stats.madr.name, sub: `predecía de media ${fmtLead(stats.madr.h)}` });
+    if (stats.dorm.name && stats.dorm.name !== stats.madr.name) honores.push({ emoji: '😴', label: 'El dormilón', value: stats.dorm.name, sub: `a última hora: ${fmtLead(stats.dorm.h)}` });
+    if (stats.tort.n > 0) honores.push({ emoji: '💑', label: 'Duelo de tortolitos', value: `${stats.tort.a} & ${stats.tort.b}`, sub: `${stats.tort.n} predicciones idénticas… ¿os copiáis? 👀` });
 
     if (honores.length > 0) arr.push({ key: 'honores', render: () => (
       <View style={[styles.slideInner, { paddingTop: 30 }]}>
