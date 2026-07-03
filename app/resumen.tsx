@@ -378,7 +378,7 @@ export default function ResumenScreen() {
     if (honores.length > 0) arr.push({ key: 'honores', render: () => (
       <View style={[styles.slideInner, { paddingTop: 30 }]}>
         <FadeIn><Text style={styles.title}>Honores del grupo</Text></FadeIn>
-        <ScrollView style={{ width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
+        <ScrollView style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
           {honores.map((h, i) => (
             <FadeIn key={h.label} delay={150 + i * 100}>
               <View style={[styles.honorRow, styles.honorRowCompact]}>
@@ -532,7 +532,7 @@ export default function ResumenScreen() {
     arr.push({ key: 'fichas', render: () => (
       <View style={[styles.slideInner, { paddingTop: 24 }]}>
         <Text style={styles.title}>Las fichas del grupo</Text>
-        <ScrollView style={{ width: '100%', marginTop: 12 }} contentContainerStyle={{ gap: 10, paddingBottom: 40 }}>
+        <ScrollView style={{ flex: 1, width: '100%', marginTop: 12 }} contentContainerStyle={{ gap: 10, paddingBottom: 40 }}>
           {stats.perPlayer.map((pl) => (
             <View key={pl.userId} style={styles.fichaCard}>
               <Text style={styles.fichaEmoji}>{pl.emoji}</Text>
@@ -551,7 +551,7 @@ export default function ResumenScreen() {
     arr.push({ key: 'final', render: () => (
       <View style={[styles.slideInner, { paddingTop: 60 }]}>
         <Text style={styles.title}>Clasificación final</Text>
-        <ScrollView style={{ marginTop: 16, width: '100%' }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
+        <ScrollView style={{ flex: 1, marginTop: 16, width: '100%' }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
           {ranking.map((e, i) => (
             <View key={e.userId} style={styles.rankRow}>
               <Text style={[styles.rankPos, i < 3 && { color: T.color.accent }]}>{i + 1}</Text>
