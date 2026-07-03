@@ -5,7 +5,6 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { isAdmin } from '../constants/admin';
-import { useGroups } from '../hooks/useGroup';
 import { useMatchResults } from '../hooks/useMatchResults';
 import { buildRanking, calculatePoints } from '../lib/scoring';
 import { Flag } from '../components/Flag';
@@ -32,9 +31,9 @@ interface Member { userId: string; displayName: string; photoURL: string | null 
 
 export default function ResumenScreen() {
   const { user } = useAuth();
-  const { groups } = useGroups();
   const liveMatches = useMatchResults();
 
+  const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -44,9 +43,16 @@ export default function ResumenScreen() {
   const [width, setWidth] = useState(SCREEN_W);
   const listRef = useRef<FlatList>(null);
 
+  // Como admin, cargamos TODOS los grupos de la app para poder elegir cuál ver
   useEffect(() => {
-    if (groups.length > 0 && !selectedGroup) setSelectedGroup(groups[0]);
-  }, [groups]);
+    getDocs(collection(db, 'groups'))
+      .then((snap) => setAllGroups(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Group))))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (allGroups.length > 0 && !selectedGroup) setSelectedGroup(allGroups[0]);
+  }, [allGroups]);
 
   useEffect(() => {
     if (!selectedGroup) return;
@@ -250,8 +256,10 @@ export default function ResumenScreen() {
     return arr;
   }, [stats, ranking, index, selectedGroup]);
 
-  function goNext() {
-    if (index < slides.length - 1) listRef.current?.scrollToIndex({ index: index + 1, animated: true });
+  function goTo(i: number) {
+    const clamped = Math.max(0, Math.min(slides.length - 1, i));
+    setIndex(clamped);
+    listRef.current?.scrollToIndex({ index: clamped, animated: true });
   }
 
   if (!isAdmin(user?.uid)) return <Redirect href="/(tabs)" />;
@@ -270,9 +278,9 @@ export default function ResumenScreen() {
         </Pressable>
       </View>
 
-      {groups.length > 1 && (
+      {allGroups.length > 1 && (
         <View style={styles.groupChips}>
-          {groups.map((g) => (
+          {allGroups.map((g) => (
             <Pressable key={g.id} onPress={() => { setSelectedGroup(g); setIndex(0); listRef.current?.scrollToIndex({ index: 0, animated: false }); }}
               style={[styles.chip, selectedGroup?.id === g.id && styles.chipActive]}>
               <Text style={[styles.chipTxt, selectedGroup?.id === g.id && styles.chipTxtActive]}>{g.name}</Text>
@@ -287,22 +295,32 @@ export default function ResumenScreen() {
             : <Text style={styles.sub}>Aún no hay datos suficientes para el resumen.</Text>}
         </View>
       ) : (
-        <FlatList
-          ref={listRef}
-          data={slides}
-          keyExtractor={(s) => s.key}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScrollToIndexFailed={() => {}}
-          getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-          onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
-          renderItem={({ item }) => (
-            <Pressable style={[styles.slide, { width }]} onPress={goNext}>
-              {item.render()}
+        <View style={{ flex: 1 }}>
+          <FlatList
+            ref={listRef}
+            data={slides}
+            keyExtractor={(s) => s.key}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScrollToIndexFailed={() => {}}
+            getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+            onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+            renderItem={({ item }) => (
+              <View style={[styles.slide, { width }]}>{item.render()}</View>
+            )}
+          />
+          {index > 0 && (
+            <Pressable style={[styles.arrow, styles.arrowLeft]} onPress={() => goTo(index - 1)} hitSlop={10}>
+              <Text style={styles.arrowTxt}>‹</Text>
             </Pressable>
           )}
-        />
+          {index < slides.length - 1 && (
+            <Pressable style={[styles.arrow, styles.arrowRight]} onPress={() => goTo(index + 1)} hitSlop={10}>
+              <Text style={styles.arrowTxt}>›</Text>
+            </Pressable>
+          )}
+        </View>
       )}
     </View>
   );
@@ -405,4 +423,8 @@ const styles = StyleSheet.create({
   rankName: { flex: 1, color: T.color.ink, fontSize: 14, fontFamily: 'HankenGrotesk_700Bold' },
   rankPts: { color: T.color.accent, fontSize: 16, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
   golDiff: { width: 60, textAlign: 'right', color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_700Bold' },
+  arrow: { position: 'absolute', top: '50%', marginTop: -24, width: 48, height: 48, borderRadius: 24, backgroundColor: T.color.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: T.color.line, ...T.shadow },
+  arrowLeft: { left: 10 },
+  arrowRight: { right: 10 },
+  arrowTxt: { color: T.color.accent, fontSize: 30, fontFamily: 'SchibstedGrotesk_800ExtraBold', lineHeight: 34, marginTop: -2 },
 });
