@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Animated, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Animated, Dimensions, ScrollView, Platform } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -51,6 +51,26 @@ function FadeIn({ children, delay = 0, style }: { children: React.ReactNode; del
     ]).start();
   }, []);
   return <Animated.View style={[style, { opacity: op, transform: [{ translateY: ty }] }]}>{children}</Animated.View>;
+}
+
+// En web, el FlatList horizontal exterior "roba" la rueda del ratón para
+// pasar de slide (comportamiento propio de react-native-web). Este wrapper
+// detiene esa propagación para que el scroll vertical interno funcione.
+function NestedScroll({ children, style, contentContainerStyle }: { children: React.ReactNode; style?: any; contentContainerStyle?: any }) {
+  const ref = useRef<ScrollView>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const node: any = (ref.current as any)?.getScrollableNode?.() ?? ref.current;
+    if (!node || typeof node.addEventListener !== 'function') return;
+    const stop = (e: any) => e.stopPropagation();
+    node.addEventListener('wheel', stop, { passive: true });
+    return () => node.removeEventListener('wheel', stop);
+  }, []);
+  return (
+    <ScrollView ref={ref} style={style} contentContainerStyle={contentContainerStyle}>
+      {children}
+    </ScrollView>
+  );
 }
 
 interface Member { userId: string; displayName: string; photoURL: string | null }
@@ -378,7 +398,7 @@ export default function ResumenScreen() {
     if (honores.length > 0) arr.push({ key: 'honores', render: () => (
       <View style={[styles.slideInner, { paddingTop: 30 }]}>
         <FadeIn><Text style={styles.title}>Honores del grupo</Text></FadeIn>
-        <ScrollView style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
+        <NestedScroll style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
           {honores.map((h, i) => (
             <FadeIn key={h.label} delay={150 + i * 100}>
               <View style={[styles.honorRow, styles.honorRowCompact]}>
@@ -391,7 +411,7 @@ export default function ResumenScreen() {
               </View>
             </FadeIn>
           ))}
-        </ScrollView>
+        </NestedScroll>
       </View>
     )});
 
@@ -403,7 +423,7 @@ export default function ResumenScreen() {
         <FadeIn delay={350}><Text style={styles.sub}>en {stats.playedCount} partidos jugados</Text></FadeIn>
         <FadeIn delay={550} style={{ width: '100%', marginTop: 18 }}>
           <Text style={[styles.label, { marginBottom: 8 }]}>Goles que predijo cada uno</Text>
-          <ScrollView style={{ maxHeight: 260, width: '100%' }} contentContainerStyle={{ gap: 6 }}>
+          <NestedScroll style={{ maxHeight: 260, width: '100%' }} contentContainerStyle={{ gap: 6 }}>
             {stats.goalsList.map((it, i) => (
               <View key={it.name} style={[styles.rankRow, i === 0 && { borderColor: T.color.accent, backgroundColor: T.color.soft }]}>
                 <Text style={styles.rankName} numberOfLines={1}>{it.name}{i === 0 ? '  🎯' : ''}</Text>
@@ -411,7 +431,7 @@ export default function ResumenScreen() {
                 <Text style={styles.golDiff}>{it.diff === 0 ? 'clavado' : `±${it.diff}`}</Text>
               </View>
             ))}
-          </ScrollView>
+          </NestedScroll>
         </FadeIn>
       </View>
     )});
@@ -451,7 +471,7 @@ export default function ResumenScreen() {
     if (curiosidades.length > 0) arr.push({ key: 'curiosidades', render: () => (
       <View style={[styles.slideInner, { paddingTop: 30 }]}>
         <FadeIn><Text style={styles.title}>Curiosidades</Text></FadeIn>
-        <ScrollView style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
+        <NestedScroll style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
           {curiosidades.map((c, i) => (
             <FadeIn key={c.label} delay={150 + i * 100}>
               <View style={[styles.honorRow, styles.honorRowCompact]}>
@@ -464,7 +484,7 @@ export default function ResumenScreen() {
               </View>
             </FadeIn>
           ))}
-        </ScrollView>
+        </NestedScroll>
       </View>
     )});
 
@@ -490,7 +510,7 @@ export default function ResumenScreen() {
     arr.push({ key: 'fichas', render: () => (
       <View style={[styles.slideInner, { paddingTop: 24 }]}>
         <Text style={styles.title}>Las fichas del grupo</Text>
-        <ScrollView style={{ flex: 1, width: '100%', marginTop: 12 }} contentContainerStyle={{ gap: 10, paddingBottom: 40 }}>
+        <NestedScroll style={{ flex: 1, width: '100%', marginTop: 12 }} contentContainerStyle={{ gap: 10, paddingBottom: 40 }}>
           {stats.perPlayer.map((pl) => (
             <View key={pl.userId} style={styles.fichaCard}>
               <Text style={styles.fichaEmoji}>{pl.emoji}</Text>
@@ -502,14 +522,14 @@ export default function ResumenScreen() {
               </View>
             </View>
           ))}
-        </ScrollView>
+        </NestedScroll>
       </View>
     )});
 
     arr.push({ key: 'final', render: () => (
       <View style={[styles.slideInner, { paddingTop: 60 }]}>
         <Text style={styles.title}>Clasificación final</Text>
-        <ScrollView style={{ flex: 1, marginTop: 16, width: '100%' }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
+        <NestedScroll style={{ flex: 1, marginTop: 16, width: '100%' }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
           {ranking.map((e, i) => (
             <View key={e.userId} style={styles.rankRow}>
               <Text style={[styles.rankPos, i < 3 && { color: T.color.accent }]}>{i + 1}</Text>
@@ -517,7 +537,7 @@ export default function ResumenScreen() {
               <Text style={styles.rankPts}>{e.totalPoints}</Text>
             </View>
           ))}
-        </ScrollView>
+        </NestedScroll>
         <Text style={styles.hint}>¡Gracias por jugar! 🏆</Text>
       </View>
     )});
