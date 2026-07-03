@@ -142,6 +142,23 @@ export default function ResumenScreen() {
     const kingGroup = buildRanking(members, predictions, groupFin)[0];
     const kingKo = koFin.length > 0 ? buildRanking(members, predictions, koFin)[0] : null;
 
+    // El francotirador: mejor % de puntos por predicción hecha (mínimo 3 predicciones)
+    const sniper = members.map((mem) => {
+      const preds = predictions.filter((p) => p.userId === mem.userId && resultMap.has(p.matchId));
+      const pts = preds.reduce((s, p) => s + calculatePoints(p, resultMap.get(p.matchId)!), 0);
+      return { name: mem.displayName, ratio: preds.length ? pts / preds.length : 0, n: preds.length };
+    }).filter((s) => s.n >= 3).sort((a, b) => b.ratio - a.ratio)[0];
+
+    // Sangre fría: mejor puntuación en partidos de eliminatoria
+    const coldBlood = koFin.length > 0 ? buildRanking(members, predictions, koFin).filter((r) => r.totalPoints > 0)[0] : null;
+
+    // El más fiel: predijo el 100% de los partidos ya disponibles (rellenados o jugados)
+    const availableMatches = liveMatches.filter((m) => m.homeTeam !== 'Por definir' && m.awayTeam !== 'Por definir');
+    const faithful = members
+      .map((mem) => ({ name: mem.displayName, n: predictions.filter((p) => p.userId === mem.userId).length }))
+      .filter((s) => s.n >= availableMatches.length && availableMatches.length > 0)
+      .sort((a, b) => b.n - a.n)[0];
+
     // Goles del torneo + goles predichos por cada uno
     const totalGoals = finished.reduce((s, m) => s + (m.homeScore ?? 0) + (m.awayScore ?? 0), 0);
     const goalsList = members.map((mem) => {
@@ -325,7 +342,7 @@ export default function ResumenScreen() {
     }
 
     return {
-      nostra, zeros, best, bestDayLabel, kingGroup, kingKo, totalGoals, closest, goalsList, wildest, champion, playedCount: finished.length,
+      nostra, zeros, best, bestDayLabel, kingGroup, kingKo, sniper, coldBlood, faithful, totalGoals, closest, goalsList, wildest, champion, playedCount: finished.length,
       perPlayer, remont, hund, madr, dorm, tort, surp, muermos, tandas, camino,
     };
   }, [members, predictions, finished, ranking, liveMatches]);
@@ -354,6 +371,9 @@ export default function ResumenScreen() {
     if (stats.best.pts > 0) honores.push({ emoji: '🔥', label: 'La mejor jornada', value: stats.best.name, sub: `${stats.best.pts} pts el ${cap(stats.bestDayLabel)}` });
     if (stats.kingGroup) honores.push({ emoji: '👑', label: 'Rey de la fase de grupos', value: stats.kingGroup.displayName, sub: `${stats.kingGroup.totalPoints} pts en la liguilla` });
     if (stats.kingKo) honores.push({ emoji: '👑', label: 'Rey de la eliminatoria', value: stats.kingKo.displayName, sub: `${stats.kingKo.totalPoints} pts en los cruces` });
+    if (stats.sniper) honores.push({ emoji: '🎖️', label: 'El francotirador', value: stats.sniper.name, sub: `${stats.sniper.ratio.toFixed(1)} pts de media por predicción` });
+    if (stats.coldBlood) honores.push({ emoji: '🧊', label: 'Sangre fría', value: stats.coldBlood.displayName, sub: `${stats.coldBlood.totalPoints} pts en la eliminatoria` });
+    if (stats.faithful) honores.push({ emoji: '🦉', label: 'El más fiel', value: stats.faithful.name, sub: `no dejó ni un partido sin predecir` });
 
     if (honores.length > 0) arr.push({ key: 'honores', render: () => (
       <View style={[styles.slideInner, { paddingTop: 40, justifyContent: 'center' }]}>
