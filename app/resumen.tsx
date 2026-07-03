@@ -383,38 +383,6 @@ export default function ResumenScreen() {
       </View>
     )});
 
-    arr.push({ key: 'podium', render: () => <PodiumSlide podium={podium} active={index === 1} /> });
-
-    const honores: { emoji: string; label: string; value: string; sub: string }[] = [];
-    if (stats.nostra && stats.nostra.exactHits > 0) honores.push({ emoji: '🔮', label: 'El Nostradamus', value: stats.nostra.displayName, sub: `${stats.nostra.exactHits} marcadores exactos clavados` });
-    if (stats.zeros && stats.zeros.z > 0) honores.push({ emoji: '🫠', label: 'El pupas', value: stats.zeros.name, sub: `${stats.zeros.z} predicciones falladas de pleno` });
-    if (stats.best.pts > 0) honores.push({ emoji: '🔥', label: 'La mejor jornada', value: stats.best.name, sub: `${stats.best.pts} pts el ${cap(stats.bestDayLabel)}` });
-    if (stats.kingGroup) honores.push({ emoji: '👑', label: 'Rey de la fase de grupos', value: stats.kingGroup.displayName, sub: `${stats.kingGroup.totalPoints} pts en la liguilla` });
-    if (stats.kingKo) honores.push({ emoji: '👑', label: 'Rey de la eliminatoria', value: stats.kingKo.displayName, sub: `${stats.kingKo.totalPoints} pts en los cruces` });
-    if (stats.sniper) honores.push({ emoji: '🎖️', label: 'El francotirador', value: stats.sniper.name, sub: `${stats.sniper.ratio.toFixed(1)} pts de media por predicción` });
-    if (stats.coldBlood) honores.push({ emoji: '🧊', label: 'Sangre fría', value: stats.coldBlood.displayName, sub: `${stats.coldBlood.totalPoints} pts en la eliminatoria` });
-    if (stats.faithful) honores.push({ emoji: '🦉', label: 'El más fiel', value: stats.faithful.name, sub: `no dejó ni un partido sin predecir` });
-
-    if (honores.length > 0) arr.push({ key: 'honores', render: () => (
-      <View style={[styles.slideInner, { paddingTop: 30 }]}>
-        <FadeIn><Text style={styles.title}>Honores del grupo</Text></FadeIn>
-        <NestedScroll style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
-          {honores.map((h, i) => (
-            <FadeIn key={h.label} delay={150 + i * 100}>
-              <View style={[styles.honorRow, styles.honorRowCompact]}>
-                <Text style={styles.honorEmojiSmall}>{h.emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.honorLabelSmall}>{h.label}</Text>
-                  <Text style={styles.honorValueSmall}>{h.value}</Text>
-                  <Text style={styles.honorSubSmall}>{h.sub}</Text>
-                </View>
-              </View>
-            </FadeIn>
-          ))}
-        </NestedScroll>
-      </View>
-    )});
-
     arr.push({ key: 'goles', render: () => (
       <View style={[styles.slideInner, { paddingTop: 40, justifyContent: 'center' }]}>
         <FadeIn><Text style={[styles.emoji, { textAlign: 'center' }]}>⚽</Text></FadeIn>
@@ -435,6 +403,8 @@ export default function ResumenScreen() {
         </FadeIn>
       </View>
     )});
+
+    arr.push({ key: 'podium', render: () => <PodiumSlide podium={podium} active={index === 2} /> });
 
     if (stats.champion) arr.push({ key: 'campeon', render: () => (
       <View style={styles.center}>
@@ -488,6 +458,36 @@ export default function ResumenScreen() {
       </View>
     )});
 
+    const honores: { emoji: string; label: string; value: string; sub: string }[] = [];
+    if (stats.nostra && stats.nostra.exactHits > 0) honores.push({ emoji: '🔮', label: 'El Nostradamus', value: stats.nostra.displayName, sub: `${stats.nostra.exactHits} marcadores exactos clavados` });
+    if (stats.zeros && stats.zeros.z > 0) honores.push({ emoji: '🫠', label: 'El pupas', value: stats.zeros.name, sub: `${stats.zeros.z} predicciones falladas de pleno` });
+    if (stats.best.pts > 0) honores.push({ emoji: '🔥', label: 'La mejor jornada', value: stats.best.name, sub: `${stats.best.pts} pts el ${cap(stats.bestDayLabel)}` });
+    if (stats.kingGroup) honores.push({ emoji: '👑', label: 'Rey de la fase de grupos', value: stats.kingGroup.displayName, sub: `${stats.kingGroup.totalPoints} pts en la liguilla` });
+    if (stats.kingKo) honores.push({ emoji: '👑', label: 'Rey de la eliminatoria', value: stats.kingKo.displayName, sub: `${stats.kingKo.totalPoints} pts en los cruces` });
+    if (stats.sniper) honores.push({ emoji: '🎖️', label: 'El francotirador', value: stats.sniper.name, sub: `${stats.sniper.ratio.toFixed(1)} pts de media por predicción` });
+    if (stats.coldBlood) honores.push({ emoji: '🧊', label: 'Sangre fría', value: stats.coldBlood.displayName, sub: `${stats.coldBlood.totalPoints} pts en la eliminatoria` });
+    if (stats.faithful) honores.push({ emoji: '🦉', label: 'El más fiel', value: stats.faithful.name, sub: `no dejó ni un partido sin predecir` });
+
+    if (honores.length > 0) arr.push({ key: 'honores', render: () => (
+      <View style={[styles.slideInner, { paddingTop: 30 }]}>
+        <FadeIn><Text style={styles.title}>Honores del grupo</Text></FadeIn>
+        <NestedScroll style={{ flex: 1, width: '100%', marginTop: 14 }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
+          {honores.map((h, i) => (
+            <FadeIn key={h.label} delay={150 + i * 100}>
+              <View style={[styles.honorRow, styles.honorRowCompact]}>
+                <Text style={styles.honorEmojiSmall}>{h.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.honorLabelSmall}>{h.label}</Text>
+                  <Text style={styles.honorValueSmall}>{h.value}</Text>
+                  <Text style={styles.honorSubSmall}>{h.sub}</Text>
+                </View>
+              </View>
+            </FadeIn>
+          ))}
+        </NestedScroll>
+      </View>
+    )});
+
     if (stats.camino.length > 0) arr.push({ key: 'camino', render: () => (
       <View style={[styles.slideInner, { justifyContent: 'center' }]}>
         <FadeIn><Text style={[styles.emoji, { textAlign: 'center' }]}>🛤️</Text></FadeIn>
@@ -527,7 +527,7 @@ export default function ResumenScreen() {
     )});
 
     arr.push({ key: 'final', render: () => (
-      <View style={[styles.slideInner, { paddingTop: 60 }]}>
+      <View style={[styles.slideInner, { paddingTop: 24 }]}>
         <Text style={styles.title}>Clasificación final</Text>
         <NestedScroll style={{ flex: 1, marginTop: 16, width: '100%' }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }}>
           {ranking.map((e, i) => (
