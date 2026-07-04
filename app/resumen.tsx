@@ -386,6 +386,24 @@ export default function ResumenScreen() {
       </View>
     )});
 
+    arr.push({ key: 'podium', render: () => <PodiumSlide podium={podium} active={index === 1} /> });
+
+    arr.push({ key: 'final', render: () => (
+      <View style={[styles.slideInner, { paddingTop: 24 }]}>
+        <Text style={styles.title}>Clasificación final</Text>
+        <ScrollView style={{ maxHeight: LIST_MAX_H, marginTop: 16, width: '100%' }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
+          {ranking.map((e, i) => (
+            <View key={e.userId} style={styles.rankRow}>
+              <Text style={[styles.rankPos, i < 3 && { color: T.color.accent }]}>{i + 1}</Text>
+              <Text style={styles.rankName} numberOfLines={1}>{e.displayName}</Text>
+              <Text style={styles.rankPts}>{e.totalPoints}</Text>
+            </View>
+          ))}
+        </ScrollView>
+        <Text style={styles.hint}>¡Gracias por jugar! 🏆</Text>
+      </View>
+    )});
+
     arr.push({ key: 'goles', render: () => (
       <View style={[styles.slideInner, { paddingTop: 40, justifyContent: 'center' }]}>
         <FadeIn><Text style={[styles.emoji, { textAlign: 'center' }]}>⚽</Text></FadeIn>
@@ -406,8 +424,6 @@ export default function ResumenScreen() {
         </FadeIn>
       </View>
     )});
-
-    arr.push({ key: 'podium', render: () => <PodiumSlide podium={podium} active={index === 2} /> });
 
     if (stats.champion) arr.push({ key: 'campeon', render: () => (
       <View style={styles.center}>
@@ -527,22 +543,6 @@ export default function ResumenScreen() {
             </View>
           ))}
         </ScrollView>
-      </View>
-    )});
-
-    arr.push({ key: 'final', render: () => (
-      <View style={[styles.slideInner, { paddingTop: 24 }]}>
-        <Text style={styles.title}>Clasificación final</Text>
-        <ScrollView style={{ maxHeight: LIST_MAX_H, marginTop: 16, width: '100%' }} contentContainerStyle={{ gap: 8, paddingBottom: 40 }} nestedScrollEnabled showsVerticalScrollIndicator>
-          {ranking.map((e, i) => (
-            <View key={e.userId} style={styles.rankRow}>
-              <Text style={[styles.rankPos, i < 3 && { color: T.color.accent }]}>{i + 1}</Text>
-              <Text style={styles.rankName} numberOfLines={1}>{e.displayName}</Text>
-              <Text style={styles.rankPts}>{e.totalPoints}</Text>
-            </View>
-          ))}
-        </ScrollView>
-        <Text style={styles.hint}>¡Gracias por jugar! 🏆</Text>
       </View>
     )});
 
