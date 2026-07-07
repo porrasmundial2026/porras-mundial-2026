@@ -9,13 +9,16 @@ import { useMatchResults } from '../hooks/useMatchResults';
 import { buildRanking, calculatePoints } from '../lib/scoring';
 import { Flag } from '../components/Flag';
 import { Group, Match, Prediction, RankingEntry, UserProfile } from '../types';
-import { PHASE_LABELS } from '../constants/matches';
+import { PHASE_LABELS, GROUPS } from '../constants/matches';
 import { T } from '../constants/theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 // Altura acotada para las listas dentro de las slides (igual que el maxHeight
 // del modal del ranking, que es el patrón que funciona en web y móvil).
 const LIST_MAX_H = Math.max(260, SCREEN_H - 260);
+
+// Los 48 equipos participantes en el Mundial (para la slide final de agradecimiento)
+const ALL_WC_TEAMS = Object.values(GROUPS).flatMap((g) => g.teams);
 
 // Semilla estable por nombre (para chistes/motes que no cambian en cada render)
 function seedOf(s: string) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
@@ -546,6 +549,9 @@ export default function ResumenScreen() {
       </View>
     )});
 
+    const graciasIndex = arr.length;
+    arr.push({ key: 'gracias', render: () => <ThanksSlide teams={ALL_WC_TEAMS} active={index === graciasIndex} /> });
+
     return arr;
   }, [stats, ranking, index, selectedGroup]);
 
@@ -678,8 +684,56 @@ function PodRow({ pos, name, pts, sub, big }: { pos: string; name: string; pts: 
   );
 }
 
+// Slide final: agradecimiento + banderas de los 48 países que se van
+// "activando" una por segundo (empiezan difuminadas/apagadas).
+function ThanksSlide({ teams, active }: { teams: string[]; active: boolean }) {
+  const [lit, setLit] = useState(0);
+  useEffect(() => {
+    if (!active) { setLit(0); return; }
+    let i = 0;
+    setLit(0);
+    const id = setInterval(() => {
+      i++;
+      setLit(i);
+      if (i >= teams.length) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active, teams.length]);
+
+  return (
+    <View style={[styles.slideInner, { paddingTop: 30 }]}>
+      <FadeIn><Text style={styles.title}>¡Muchas gracias por participar! 🙌</Text></FadeIn>
+      <FadeIn delay={200}><Text style={styles.sub}>Nos vemos en el próximo Mundial 🏆</Text></FadeIn>
+      <ScrollView style={{ maxHeight: LIST_MAX_H, width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} nestedScrollEnabled showsVerticalScrollIndicator>
+        <View style={styles.thanksGrid}>
+          {teams.map((t, i) => (
+            <ThanksFlag key={t} team={t} active={i < lit} />
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function ThanksFlag({ team, active }: { team: string; active: boolean }) {
+  const op = useRef(new Animated.Value(0.2)).current;
+  const sc = useRef(new Animated.Value(0.9)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(op, { toValue: active ? 1 : 0.2, duration: 900, useNativeDriver: true }),
+      Animated.timing(sc, { toValue: active ? 1 : 0.9, duration: 900, useNativeDriver: true }),
+    ]).start();
+  }, [active]);
+  return (
+    <Animated.View style={{ opacity: op, transform: [{ scale: sc }] }}>
+      <Flag team={team} size={30} />
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.color.bg },
+  thanksGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 24, maxWidth: 420 },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 50, paddingBottom: 8, gap: 12 },
   dots: { flex: 1, flexDirection: 'row', gap: 4 },
   dot: { flex: 1, height: 3, borderRadius: 2, backgroundColor: T.color.line },
