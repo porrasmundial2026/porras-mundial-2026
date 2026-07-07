@@ -731,15 +731,28 @@ function PodRow({ pos, name, pts, sub, big }: { pos: string; name: string; pts: 
 
 // Slide final: agradecimiento + banderas de los 48 países que se van
 // "activando" una por segundo (empiezan difuminadas/apagadas).
+// Orden de activación aleatorio (barajado), no el orden de la rejilla
+function shuffledIndices(n: number): number[] {
+  const arr = Array.from({ length: n }, (_, i) => i);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function ThanksSlide({ teams, active }: { teams: string[]; active: boolean }) {
-  const [lit, setLit] = useState(0);
+  const [litSet, setLitSet] = useState<Set<number>>(new Set());
+  const orderRef = useRef<number[]>([]);
+
   useEffect(() => {
-    if (!active) { setLit(0); return; }
+    if (!active) { setLitSet(new Set()); return; }
+    orderRef.current = shuffledIndices(teams.length);
     let i = 0;
-    setLit(0);
+    setLitSet(new Set());
     const id = setInterval(() => {
       i++;
-      setLit(i);
+      setLitSet(new Set(orderRef.current.slice(0, i)));
       if (i >= teams.length) clearInterval(id);
     }, 1000);
     return () => clearInterval(id);
@@ -752,7 +765,7 @@ function ThanksSlide({ teams, active }: { teams: string[]; active: boolean }) {
       <ScrollView style={{ maxHeight: LIST_MAX_H, width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} nestedScrollEnabled showsVerticalScrollIndicator>
         <View style={styles.thanksGrid}>
           {teams.map((t, i) => (
-            <ThanksFlag key={t} team={t} active={i < lit} />
+            <ThanksFlag key={t} team={t} active={litSet.has(i)} />
           ))}
         </View>
       </ScrollView>
