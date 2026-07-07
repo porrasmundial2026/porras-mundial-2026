@@ -179,6 +179,29 @@ export default function ResumenScreen() {
     // Partido más loco (más goles)
     const wildest = [...finished].sort((a, b) => ((b.homeScore ?? 0) + (b.awayScore ?? 0)) - ((a.homeScore ?? 0) + (a.awayScore ?? 0)))[0];
 
+    // ---- Estadísticas por país (agregadas de todo el torneo) ----
+    const teamStats = new Map<string, { gf: number; ga: number; played: number; wins: number }>();
+    const touch = (t: string) => { if (!teamStats.has(t)) teamStats.set(t, { gf: 0, ga: 0, played: 0, wins: 0 }); return teamStats.get(t)!; };
+    let biggestWin: { home: string; away: string; hs: number; as: number; margin: number } | null = null;
+    for (const m of finished) {
+      const hs = m.homeScore ?? 0, as = m.awayScore ?? 0;
+      const h = touch(m.homeTeam), a = touch(m.awayTeam);
+      h.gf += hs; h.ga += as; h.played++;
+      a.gf += as; a.ga += hs; a.played++;
+      if (hs > as) h.wins++; else if (as > hs) a.wins++;
+      const margin = Math.abs(hs - as);
+      if (!biggestWin || margin > biggestWin.margin) {
+        biggestWin = hs >= as
+          ? { home: m.homeTeam, away: m.awayTeam, hs, as, margin }
+          : { home: m.awayTeam, away: m.homeTeam, hs: as, as: hs, margin };
+      }
+    }
+    const teamsPlayed = [...teamStats.entries()].filter(([, s]) => s.played >= 2);
+    const topScorerTeam = [...teamStats.entries()].sort((a, b) => b[1].gf - a[1].gf)[0];
+    const bestDefense = teamsPlayed.sort((a, b) => (a[1].ga / a[1].played) - (b[1].ga / b[1].played))[0];
+    const leakiest = teamsPlayed.sort((a, b) => (b[1].ga / b[1].played) - (a[1].ga / a[1].played))[0];
+    const mostWins = [...teamStats.entries()].sort((a, b) => b[1].wins - a[1].wins)[0];
+
     // Campeón del Mundial (final finalizada)
     const finalMatch = liveMatches.find((m) => m.phase === 'final' && m.status === 'finished');
     let champion: string | null = null;
@@ -369,6 +392,7 @@ export default function ResumenScreen() {
 
     return {
       nostra, zeros, best, bestDayLabel, kingGroup, kingKo, sniper, coldBlood, faithful, totalGoals, closest, goalsList, wildest, champion, playedCount: finished.length,
+      topScorerTeam, bestDefense, leakiest, mostWins, biggestWin,
       perPlayer, remont, hund, madr, dorm, tort, surp, muermos, tandas, camino,
     };
   }, [members, predictions, finished, ranking, liveMatches]);
@@ -448,6 +472,27 @@ export default function ResumenScreen() {
       emoji: '😱', label: 'La sorpresa del torneo',
       value: `${stats.surp.match.homeTeam} ${stats.surp.match.homeScore}–${stats.surp.match.awayScore} ${stats.surp.match.awayTeam}`,
       sub: `solo un ${Math.round(stats.surp.pct * 100)}% del grupo lo vio venir`,
+    });
+    if (stats.biggestWin && stats.biggestWin.margin > 0) curiosidades.push({
+      emoji: '💥', label: 'La goleada del torneo',
+      value: `${stats.biggestWin.home} ${stats.biggestWin.hs}–${stats.biggestWin.as} ${stats.biggestWin.away}`,
+      sub: `victoria por ${stats.biggestWin.margin} goles de diferencia`,
+    });
+    if (stats.topScorerTeam) curiosidades.push({
+      emoji: '🥅', label: 'El país más goleador', value: stats.topScorerTeam[0],
+      sub: `${stats.topScorerTeam[1].gf} goles anotados en el torneo`,
+    });
+    if (stats.bestDefense) curiosidades.push({
+      emoji: '🧱', label: 'La mejor defensa', value: stats.bestDefense[0],
+      sub: `${stats.bestDefense[1].ga} goles encajados en ${stats.bestDefense[1].played} partidos`,
+    });
+    if (stats.leakiest && stats.leakiest[0] !== stats.bestDefense?.[0]) curiosidades.push({
+      emoji: '🕳️', label: 'El coladero', value: stats.leakiest[0],
+      sub: `${stats.leakiest[1].ga} goles encajados en ${stats.leakiest[1].played} partidos`,
+    });
+    if (stats.mostWins && stats.mostWins[1].wins > 0) curiosidades.push({
+      emoji: '🔥', label: 'El más ganador', value: stats.mostWins[0],
+      sub: `${stats.mostWins[1].wins} victorias en el torneo`,
     });
     curiosidades.push({
       emoji: '📊', label: 'Datos del Mundial',
