@@ -227,11 +227,11 @@ export default function RankingScreen() {
               )}
               <View style={styles.statsSection}>
                 <Pressable onPress={() => (finalDone ? router.push('/resumen' as any) : setComingSoon(true))}>
-                  <View style={styles.statCard}>
+                  <View style={[styles.statCard, styles.resumenCard]}>
                     <Text style={styles.statIcon}>{finalDone ? '🏆' : '🔒'}</Text>
                     <View style={styles.statTextBlock}>
-                      <Text style={styles.statCardLabel}>{finalDone ? 'Ya disponible' : 'Se desbloquea al acabar la final'}</Text>
-                      <Text style={styles.statCardValue}>Resumen del torneo</Text>
+                      <Text style={styles.resumenCardLabel}>{finalDone ? 'Ya disponible' : 'Se desbloquea al acabar la final'}</Text>
+                      <Text style={styles.resumenCardValue}>Resumen del torneo</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={T.color.accent} />
                   </View>
@@ -395,6 +395,9 @@ const styles = StyleSheet.create({
   statsSection: { paddingHorizontal: T.space.lg, paddingTop: T.space.sm, gap: T.space.sm },
   statsSectionTitle: { color: T.color.ink, fontSize: 13, fontFamily: 'HankenGrotesk_700Bold', textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: T.space.lg, paddingTop: T.space.md, paddingBottom: 4 },
   statCard: { flexDirection: 'row', alignItems: 'center', gap: T.space.md, backgroundColor: T.color.surface, borderRadius: T.radius.card, padding: T.space.md, borderWidth: 1, borderColor: T.color.line, ...T.shadow },
+  resumenCard: { backgroundColor: T.color.soft, borderColor: T.color.accent, borderWidth: 1.5 },
+  resumenCardLabel: { color: T.color.accent, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium' },
+  resumenCardValue: { color: T.color.ink, fontSize: 16, fontFamily: 'SchibstedGrotesk_800ExtraBold' },
   statIcon: { fontSize: 22 },
   statTextBlock: { flex: 1, gap: 2 },
   statCardLabel: { color: T.color.ink3, fontSize: 12, fontFamily: 'HankenGrotesk_500Medium' },
