@@ -372,7 +372,7 @@ export default function RankingScreen() {
               Podio, motes que no se van a olvidar, y algún que otro secreto que solo los números saben...{'\n\n'}
               Se desbloquea en cuanto acabe la final. Aguanta un poco más 👀
             </Text>
-            <Pressable style={styles.closeBtn} onPress={() => setComingSoon(false)}>
+            <Pressable style={[styles.closeBtn, styles.comingSoonCloseBtn]} onPress={() => setComingSoon(false)}>
               <Text style={styles.closeBtnText}>Vale, esperaré</Text>
             </Pressable>
           </Pressable>
@@ -442,4 +442,5 @@ const styles = StyleSheet.create({
   comingSoonCard: { width: '100%', maxWidth: 400, backgroundColor: T.color.surface, borderRadius: T.radius.card, padding: T.space.lg, alignItems: 'center' },
   comingSoonEmoji: { fontSize: 40, marginBottom: T.space.sm },
   comingSoonSub: { color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', marginTop: T.space.sm, marginBottom: T.space.md, lineHeight: 20 },
+  comingSoonCloseBtn: { width: '100%', paddingHorizontal: T.space.xl },
 });
