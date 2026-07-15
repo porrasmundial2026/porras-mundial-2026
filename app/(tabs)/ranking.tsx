@@ -168,13 +168,6 @@ export default function RankingScreen() {
         <View style={styles.titleRow}>
           <Text style={styles.title}>Ranking</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Pressable
-              style={styles.shareBtn}
-              onPress={() => (finalDone ? router.push('/resumen' as any) : setComingSoon(true))}
-            >
-              <Ionicons name="trophy" size={16} color={T.color.accent} />
-              <Text style={styles.shareBtnText}>{finalDone ? 'Resumen' : 'Resumen 🔒'}</Text>
-            </Pressable>
             {ranking.length > 0 && canShare && (
               <Pressable style={styles.shareBtn} onPress={shareRanking}>
                 <Ionicons name="share-social" size={16} color={T.color.accent} />
@@ -232,6 +225,18 @@ export default function RankingScreen() {
                   <Text style={styles.recapText}>{recap}</Text>
                 </View>
               )}
+              <View style={styles.statsSection}>
+                <Pressable onPress={() => (finalDone ? router.push('/resumen' as any) : setComingSoon(true))}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statIcon}>{finalDone ? '🏆' : '🔒'}</Text>
+                    <View style={styles.statTextBlock}>
+                      <Text style={styles.statCardLabel}>{finalDone ? 'Ya disponible' : 'Se desbloquea al acabar la final'}</Text>
+                      <Text style={styles.statCardValue}>Resumen del torneo</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={T.color.accent} />
+                  </View>
+                </Pressable>
+              </View>
               {groupStats && (
                 <View style={styles.statsSection}>
                   <Text style={[styles.statsSectionTitle, { paddingHorizontal: 0, paddingTop: 0 }]}>Destacados del grupo</Text>
