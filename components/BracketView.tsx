@@ -22,6 +22,7 @@ const ROUNDS: { key: Match['phase']; label: string }[] = [
   { key: 'r16', label: 'Octavos' },
   { key: 'quarter', label: 'Cuartos' },
   { key: 'semi', label: 'Semis' },
+  { key: 'third', label: '3er y 4º puesto' },
   { key: 'final', label: 'Final' },
 ];
 
