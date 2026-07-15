@@ -30,6 +30,8 @@ export default function RankingScreen() {
   const { user } = useAuth();
   const { groups, loading: groupsLoading } = useGroups();
   const liveMatches = useMatchResults();
+  const finalDone = isFinalFinished(liveMatches);
+  const [comingSoon, setComingSoon] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [loadingRanking, setLoadingRanking] = useState(false);
   const shotRef = useRef<any>(null);
@@ -166,12 +168,13 @@ export default function RankingScreen() {
         <View style={styles.titleRow}>
           <Text style={styles.title}>Ranking</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            {isFinalFinished(liveMatches) && (
-              <Pressable style={styles.shareBtn} onPress={() => router.push('/resumen' as any)}>
-                <Ionicons name="trophy" size={16} color={T.color.accent} />
-                <Text style={styles.shareBtnText}>Resumen</Text>
-              </Pressable>
-            )}
+            <Pressable
+              style={styles.shareBtn}
+              onPress={() => (finalDone ? router.push('/resumen' as any) : setComingSoon(true))}
+            >
+              <Ionicons name="trophy" size={16} color={T.color.accent} />
+              <Text style={styles.shareBtnText}>{finalDone ? 'Resumen' : 'Resumen 🔒'}</Text>
+            </Pressable>
             {ranking.length > 0 && canShare && (
               <Pressable style={styles.shareBtn} onPress={shareRanking}>
                 <Ionicons name="share-social" size={16} color={T.color.accent} />
@@ -353,6 +356,23 @@ export default function RankingScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Aviso de "Próximamente" para el Resumen del torneo */}
+      <Modal visible={comingSoon} transparent animationType="fade" onRequestClose={() => setComingSoon(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setComingSoon(false)}>
+          <Pressable style={styles.comingSoonCard} onPress={() => {}}>
+            <Text style={styles.comingSoonEmoji}>🔒🏆</Text>
+            <Text style={styles.modalTitle}>Resumen del torneo</Text>
+            <Text style={styles.comingSoonSub}>
+              Podio, motes que no se van a olvidar, y algún que otro secreto que solo los números saben...{'\n\n'}
+              Se desbloquea en cuanto acabe la final. Aguanta un poco más 👀
+            </Text>
+            <Pressable style={styles.closeBtn} onPress={() => setComingSoon(false)}>
+              <Text style={styles.closeBtnText}>Vale, esperaré</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -411,4 +431,7 @@ const styles = StyleSheet.create({
   modalEmpty: { color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', paddingVertical: T.space.lg },
   closeBtn: { marginTop: T.space.md, backgroundColor: T.color.accent, borderRadius: T.radius.chip, paddingVertical: 12, alignItems: 'center' },
   closeBtnText: { color: '#fff', fontSize: 15, fontFamily: 'HankenGrotesk_700Bold' },
+  comingSoonCard: { width: '100%', maxWidth: 400, backgroundColor: T.color.surface, borderRadius: T.radius.card, padding: T.space.lg, alignItems: 'center' },
+  comingSoonEmoji: { fontSize: 40, marginBottom: T.space.sm },
+  comingSoonSub: { color: T.color.ink2, fontSize: 14, fontFamily: 'HankenGrotesk_500Medium', textAlign: 'center', marginTop: T.space.sm, marginBottom: T.space.md, lineHeight: 20 },
 });
