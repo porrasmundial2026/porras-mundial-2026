@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable, Platform, Modal, ScrollView } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
+import { isFinalFinished } from '../../lib/tournament';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -164,12 +165,20 @@ export default function RankingScreen() {
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Ranking</Text>
-          {ranking.length > 0 && canShare && (
-            <Pressable style={styles.shareBtn} onPress={shareRanking}>
-              <Ionicons name="share-social" size={16} color={T.color.accent} />
-              <Text style={styles.shareBtnText}>Compartir</Text>
-            </Pressable>
-          )}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {isFinalFinished(liveMatches) && (
+              <Pressable style={styles.shareBtn} onPress={() => router.push('/resumen' as any)}>
+                <Ionicons name="trophy" size={16} color={T.color.accent} />
+                <Text style={styles.shareBtnText}>Resumen</Text>
+              </Pressable>
+            )}
+            {ranking.length > 0 && canShare && (
+              <Pressable style={styles.shareBtn} onPress={shareRanking}>
+                <Ionicons name="share-social" size={16} color={T.color.accent} />
+                <Text style={styles.shareBtnText}>Compartir</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
 
         {groups.length > 1 && (

@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Animated, Dimensions, ScrollView, Platform } from 'react-native';
 import { Redirect, router } from 'expo-router';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { query, where, getDocs, doc, getDoc, collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { isAdmin } from '../constants/admin';
+import { useGroups } from '../hooks/useGroup';
 import { useMatchResults } from '../hooks/useMatchResults';
+import { isFinalFinished } from '../lib/tournament';
 import { buildRanking, calculatePoints } from '../lib/scoring';
 import { Flag } from '../components/Flag';
 import { Group, Match, Prediction, RankingEntry, UserProfile } from '../types';
@@ -64,8 +65,9 @@ interface Member { userId: string; displayName: string; photoURL: string | null 
 export default function ResumenScreen() {
   const { user } = useAuth();
   const liveMatches = useMatchResults();
+  const { groups: myGroups } = useGroups();
+  const finalDone = useMemo(() => isFinalFinished(liveMatches), [liveMatches]);
 
-  const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -75,16 +77,10 @@ export default function ResumenScreen() {
   const [width, setWidth] = useState(SCREEN_W);
   const listRef = useRef<FlatList>(null);
 
-  // Como admin, cargamos TODOS los grupos de la app para poder elegir cuál ver
+  // Cada usuario ve solo el resumen de SUS propios grupos
   useEffect(() => {
-    getDocs(collection(db, 'groups'))
-      .then((snap) => setAllGroups(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Group))))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (allGroups.length > 0 && !selectedGroup) setSelectedGroup(allGroups[0]);
-  }, [allGroups]);
+    if (myGroups.length > 0 && !selectedGroup) setSelectedGroup(myGroups[0]);
+  }, [myGroups]);
 
   useEffect(() => {
     if (!selectedGroup) return;
@@ -606,7 +602,9 @@ export default function ResumenScreen() {
     listRef.current?.scrollToIndex({ index: clamped, animated: true });
   }
 
-  if (!isAdmin(user?.uid)) return <Redirect href="/(tabs)" />;
+  // Solo accesible una vez logueado y con la final del Mundial ya jugada
+  if (!user) return <Redirect href="/(auth)/login" />;
+  if (!finalDone) return <Redirect href="/(tabs)" />;
 
   return (
     <View style={styles.container} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
@@ -622,9 +620,9 @@ export default function ResumenScreen() {
         </Pressable>
       </View>
 
-      {allGroups.length > 1 && (
+      {myGroups.length > 1 && (
         <View style={styles.groupChips}>
-          {allGroups.map((g) => (
+          {myGroups.map((g) => (
             <Pressable key={g.id} onPress={() => { setSelectedGroup(g); setIndex(0); listRef.current?.scrollToIndex({ index: 0, animated: false }); }}
               style={[styles.chip, selectedGroup?.id === g.id && styles.chipActive]}>
               <Text style={[styles.chipTxt, selectedGroup?.id === g.id && styles.chipTxtActive]}>{g.name}</Text>

@@ -1,6 +1,8 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { T } from '../../constants/theme';
+import { WrappedPopup } from '../../components/WrappedPopup';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -14,6 +16,7 @@ const TABS: { name: string; label: string; icon: IconName; iconActive: IconName 
 
 export default function TabsLayout() {
   return (
+    <>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -40,5 +43,7 @@ export default function TabsLayout() {
         />
       ))}
     </Tabs>
+    <WrappedPopup />
+    </>
   );
 }
