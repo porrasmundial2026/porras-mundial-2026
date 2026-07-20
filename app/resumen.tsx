@@ -67,6 +67,12 @@ export default function ResumenScreen() {
   const liveMatches = useMatchResults();
   const { groups: myGroups } = useGroups();
   const finalDone = useMemo(() => isFinalFinished(liveMatches), [liveMatches]);
+  // useMatchResults() arranca con un estado por defecto (final "upcoming")
+  // antes de que lleguen los datos reales de Firestore. Sin esta espera, al
+  // entrar en esta pantalla el guard de abajo redirigía de vuelta al
+  // instante, antes de que diera tiempo a comprobar que la final SÍ acabó.
+  const [dataReady, setDataReady] = useState(false);
+  useEffect(() => { setDataReady(true); }, [liveMatches]);
 
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -602,8 +608,16 @@ export default function ResumenScreen() {
     listRef.current?.scrollToIndex({ index: clamped, animated: true });
   }
 
-  // Solo accesible una vez logueado y con la final del Mundial ya jugada
+  // Solo accesible una vez logueado y con la final del Mundial ya jugada.
+  // Esperamos a dataReady para no redirigir con el estado inicial (falso).
   if (!user) return <Redirect href="/(auth)/login" />;
+  if (!dataReady) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator color={T.color.accent} size="large" />
+      </View>
+    );
+  }
   if (!finalDone) return <Redirect href="/(tabs)" />;
 
   return (
