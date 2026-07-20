@@ -5,7 +5,7 @@ import { query, where, getDocs, doc, getDoc, collection } from 'firebase/firesto
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useGroups } from '../hooks/useGroup';
-import { useMatchResults } from '../hooks/useMatchResults';
+import { useMatchResults, useMatchResultsReady } from '../hooks/useMatchResults';
 import { isFinalFinished } from '../lib/tournament';
 import { buildRanking, calculatePoints } from '../lib/scoring';
 import { Flag } from '../components/Flag';
@@ -67,12 +67,9 @@ export default function ResumenScreen() {
   const liveMatches = useMatchResults();
   const { groups: myGroups } = useGroups();
   const finalDone = useMemo(() => isFinalFinished(liveMatches), [liveMatches]);
-  // useMatchResults() arranca con un estado por defecto (final "upcoming")
-  // antes de que lleguen los datos reales de Firestore. Sin esta espera, al
-  // entrar en esta pantalla el guard de abajo redirigía de vuelta al
-  // instante, antes de que diera tiempo a comprobar que la final SÍ acabó.
-  const [dataReady, setDataReady] = useState(false);
-  useEffect(() => { setDataReady(true); }, [liveMatches]);
+  // Solo true cuando ha llegado la respuesta REAL de Firestore (no en el
+  // primer montaje con el estado por defecto). Evita el redirect prematuro.
+  const dataReady = useMatchResultsReady();
 
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);

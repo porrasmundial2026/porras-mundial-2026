@@ -105,3 +105,18 @@ export function useMatchResults(): Match[] {
 
   return matches;
 }
+
+/**
+ * ¿Ha llegado ya la primera respuesta real de Firestore para matchResults?
+ * A diferencia de un useEffect atado a `liveMatches` (que se dispara también
+ * en el primer montaje, con el estado por defecto), esto solo se pone a
+ * true DENTRO del callback de onSnapshot, cuando el dato ha llegado de verdad.
+ */
+export function useMatchResultsReady(): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'matchResults'), () => setReady(true));
+    return unsub;
+  }, []);
+  return ready;
+}
